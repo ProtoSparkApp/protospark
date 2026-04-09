@@ -1,10 +1,19 @@
-import { Geist, Geist_Mono, Inter } from "next/font/google"
+import { Fraunces, Inter, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
+import { Header } from "@/components/header";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
+const fontHeading = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-heading",
+});
+
+const fontSans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -20,10 +29,25 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", inter.variable)}
+      className={cn(
+        "antialiased",
+        fontHeading.variable,
+        fontSans.variable,
+        fontMono.variable
+      )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )
