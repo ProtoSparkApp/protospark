@@ -49,10 +49,10 @@ export default function RootLayout({
             <Header />
             {children}
           </div>
-          <Toaster 
-            position="bottom-right" 
-            richColors 
-            theme="light" 
+          <Toaster
+            position="bottom-right"
+            richColors
+            theme="light"
             toastOptions={{
               style: {
                 borderRadius: '0px',

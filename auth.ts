@@ -28,7 +28,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       async authorize(credentials) {
         const validated = loginSchema.safeParse(credentials);
-        
+
         if (validated.success) {
           const { email, password } = validated.data;
           const [user] = await db.select().from(users).where(eq(users.email, email));
@@ -37,7 +37,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
-          if (passwordsMatch) return user;
+          if (passwordsMatch) {
+            if (!user.emailVerified) {
+              throw new Error("Please verify your email before logging in.");
+            }
+            return user;
+          }
         }
 
         return null;
