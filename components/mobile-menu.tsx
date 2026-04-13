@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 const menuItems = [
   { name: "Inventory", href: "/inventory" },
   { name: "Projects", href: "/projects" },
-  { name: "TME Store", href: "/store" },
+  { name: "Mouser Store", href: "/store" },
 ];
 
 export function MobileMenu() {

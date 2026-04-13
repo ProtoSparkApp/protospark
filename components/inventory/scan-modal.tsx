@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { QRCodeSVG } from "qrcode.react"
-import { X, Smartphone, MonitorSmartphone, Camera, ChevronRight, Loader2 } from "lucide-react"
+import { X, Smartphone, MonitorSmartphone, Camera, ChevronRight, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatError } from "@/lib/utils"
 
@@ -11,6 +11,7 @@ import { createScanSession, getScanSession, updateScanSession, processScan, dele
 import { addComponent } from "@/lib/actions/inventory"
 import { useRef } from "react"
 import { toast } from "sonner"
+import { MouserSelector } from "./mouser-selector"
 
 export function ScanModal({ onClose }: { onClose: () => void }) {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -20,6 +21,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
   const [images, setImages] = useState<{ step1?: string, step2?: string }>({})
   const [cameraActive, setCameraActive] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [showMouserSelector, setShowMouserSelector] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -183,6 +185,39 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
           <X size={24} />
         </button>
 
+        <AnimatePresence>
+          {showMouserSelector && result?.mouserAlternatives && (
+            <MouserSelector
+              products={result.mouserAlternatives.map((a: any) => ({
+                name: a.symbol,
+                description: a.description,
+                category: a.category,
+                producer: a.manufacturer,
+                photo: a.photo,
+                datasheet: a.datasheet,
+                url: a.url,
+                price: a.price
+              }))}
+              onSelect={(p) => {
+                setResult({
+                  ...result,
+                  name: p.name,
+                  mouserData: {
+                    producer: p.producer,
+                    description: p.description,
+                    photo: p.photo,
+                    datasheet: p.datasheet,
+                    url: p.url,
+                    price: p.price
+                  }
+                });
+                setShowMouserSelector(false);
+              }}
+              onClose={() => setShowMouserSelector(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {view === 'selection' ? (
           <>
             <div className="p-8 border-b-4 border-black bg-brand text-white flex justify-between items-end">
@@ -341,9 +376,35 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
               <div className="flex-1 grid lg:grid-cols-2 divide-x-4 divide-black overflow-hidden">
                 <div className="p-12 overflow-y-auto space-y-8">
                   <div className="space-y-2">
-                    <span className="bg-fuchsia-500 text-white px-2 py-1 text-[10px] font-black uppercase rounded-sm">AI Suggestion</span>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-fuchsia-500 text-white px-2 py-1 text-[10px] font-black uppercase rounded-sm">AI Suggestion</span>
+                      {result.mouserData && (
+                        <span className="bg-blue-600 text-white px-2 py-1 text-[10px] font-black uppercase rounded-sm flex items-center gap-1">
+                          <Check size={10} strokeWidth={4} /> Mouser Verified
+                        </span>
+                      )}
+                    </div>
                     <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">{result.name}</h3>
-                    <p className="font-mono text-sm font-bold text-black/40 uppercase">{result.category}</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-2 items-center">
+                        <p className="font-mono text-sm font-bold text-black/40 uppercase">{result.category}</p>
+                        {result.mouserData?.producer && (
+                          <>
+                            <span className="text-black/20">•</span>
+                            <p className="font-mono text-sm font-bold text-brand uppercase">{result.mouserData.producer}</p>
+                          </>
+                        )}
+                      </div>
+
+                      {result.mouserAlternatives?.length > 1 && (
+                        <button
+                          onClick={() => setShowMouserSelector(true)}
+                          className="text-[10px] font-black uppercase text-blue-600 hover:underline"
+                        >
+                          Not the right part?
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -357,9 +418,28 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                     </div>
                   </div>
 
-                  <div className="p-6 bg-zinc-100 border-l-4 border-black italic font-medium">
-                    "{result.description}"
+                  <div className="p-6 bg-zinc-100 border-l-4 border-black italic font-medium relative group">
+                    "{result.description || result.mouserData?.description}"
+                    {(result.mouserData?.datasheet || result.mouserData?.url) && (
+                      <a
+                        href={result.mouserData.datasheet || result.mouserData.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block mt-4 text-[10px] font-black uppercase text-brand hover:underline flex items-center gap-1"
+                      >
+                        View Official Specs <ChevronRight size={12} />
+                      </a>
+                    )}
                   </div>
+
+                  {result.mouserData?.photo && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-black uppercase text-black/40">Mouser Official Reference Image</span>
+                      <div className="w-32 aspect-square bg-white border-2 border-black flex items-center justify-center p-2">
+                        <img src={result.mouserData.photo} alt="Mouser Reference" className="max-w-full max-h-full object-contain" />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-4">
                     <Button variant="outline" className="flex-1 border-2 border-black h-14 font-black uppercase" onClick={() => setView('selection')}>
@@ -398,7 +478,6 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                        {/* YOLO Overlay Placeholder */}
                         {result?.detections && (
                           <div className="absolute inset-0 pointer-events-none">
                             {result.detections.map((d: any, i: number) => (

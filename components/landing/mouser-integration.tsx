@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ShoppingCart, ArrowRight, Truck } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 
-export function TMEIntegration() {
+export function MouserIntegration() {
   return (
     <section className="py-24 bg-brand/5">
       <div className="container mx-auto px-4">
@@ -18,23 +18,23 @@ export function TMEIntegration() {
                   <ShoppingCart size={32} weight="fill" />
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
-                  Seamless <br />
-                  Logistics.
+                  Global <br />
+                  Inventory.
                 </h2>
               </div>
               <p className="text-lg text-white/70 max-w-md font-medium leading-relaxed">
-                Found a project but missing a specialized MCU or sensor? One click sends your entire "Missing Parts" bill of materials to TME for fast global shipping.
+                Found a project but missing a specialized MCU or sensor? One click sends your entire "Missing Parts" bill of materials to Mouser for overnight shipping.
               </p>
               <div className="flex gap-4">
                 <Button variant="outline" size="lg">
-                  Browse TME Catalog
+                  Browse Mouser Catalog
                 </Button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { title: "24h Shipping", desc: "Global logistics net", icon: Truck },
+                { title: "Next Day", desc: "Global logistics net", icon: Truck },
                 { title: "Smart Cart", icon: ShoppingCart, desc: "Auto-BOM assembly" }
               ].map((card, i) => (
                 <motion.div
@@ -51,9 +51,8 @@ export function TMEIntegration() {
             </div>
           </div>
 
-          {}
           <div className="absolute -bottom-10 -right-10 opacity-10 pointer-events-none">
-             <span className="text-[8rem] font-black uppercase leading-none select-none">TME</span>
+             <span className="text-[8rem] font-black uppercase leading-none select-none">MOUSER</span>
           </div>
         </div>
       </div>

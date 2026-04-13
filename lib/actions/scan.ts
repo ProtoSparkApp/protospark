@@ -6,10 +6,19 @@ import { auth } from "@/auth"
 import { eq, lt } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { ollama } from "ai-sdk-ollama"
+import { google } from "@ai-sdk/google"
 import { generateObject } from "ai"
 import { z } from "zod"
 import fs from "fs"
 import path from "path"
+import { searchMouserProduct } from "@/lib/mouser"
+import { categoryEnum, unitEnum } from "../validators"
+
+const PROVIDER: "ollama" | "gemini" = "gemini";
+
+const visionModel = PROVIDER === "gemini"
+  ? google("gemini-2.5-flash-lite")
+  : ollama("llava:v1.6");
 
 export async function createScanSession() {
   const session = await auth()
@@ -116,12 +125,15 @@ export async function processScan(sessionId: string) {
     }
 
     const { object: idResult } = await generateObject({
-      model: ollama("llava:v1.6"),
+      model: visionModel as any,
+      tools: {
+        google_search: google.tools.googleSearch({}),
+      },
       schema: z.object({
         name: z.string().describe("Exact technical name/part number found on the component"),
-        category: z.string().describe("Best fit category (Microcontroller, Resistor, etc.)"),
+        category: z.string().describe(`Best fit category ${categoryEnum.toString()}`),
         value: z.string().describe("Numerical value (e.g. 10, 3.3, 100)"),
-        unit: z.string().describe("Unit (Ohm, uF, V, None)"),
+        unit: z.string().describe(`Unit ${unitEnum.toString()}`),
         description: z.string().describe("Short technical description or identified package type"),
         confidence: z.number().min(0).transform(v => v > 1 ? v / 100 : v),
       }),
@@ -140,51 +152,46 @@ export async function processScan(sessionId: string) {
 
     if (step2Base64) {
       try {
-        const YOLO_URL = process.env.YOLO_API_URL
-
-        if (YOLO_URL) {
-          const response = await fetch(YOLO_URL, {
-            method: 'POST',
-            body: JSON.stringify({ image: step2Base64 }),
-            headers: { 'Content-Type': 'application/json' }
-          })
-          const data = await response.json()
-          quantityResult = {
-            estimatedQuantity: data.count || 1,
-            detections: data.detections || []
-          }
-        } else {
-          const { object: countResult } = await generateObject({
-            model: ollama("llava:v1.6"),
-            schema: z.object({
-              count: z.number().describe("Total count of items detected"),
-              detections: z.array(z.object({
-                x: z.number(), y: z.number(), w: z.number(), h: z.number(), label: z.string()
-              }))
-            }),
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: "Task: Counting items as a YOLO object detector. Find all electronic components in this image and mark them with bounding boxes (x, y center and w/h as 0-100%)." },
-                  { type: "image", image: step2Base64, mimeType: "image/jpeg" }
-                ]
-              }
-            ]
-          })
-          quantityResult = {
-            estimatedQuantity: countResult.count,
-            detections: countResult.detections as any
-          }
+        const { object: countResult } = await generateObject({
+          model: visionModel as any,
+          tools: {
+            google_search: google.tools.googleSearch({}),
+          },
+          schema: z.object({
+            count: z.number().describe("Total count of items detected"),
+            detections: z.array(z.object({
+              x: z.number(), y: z.number(), w: z.number(), h: z.number(), label: z.string()
+            }))
+          }),
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Task: Counting items as a object detector. Find all electronic components in this image and mark them with bounding boxes (x, y center and w/h as 0-100%). Respond in English." },
+                { type: "image", image: step2Base64, mimeType: "image/jpeg" }
+              ]
+            }
+          ]
+        })
+        quantityResult = {
+          estimatedQuantity: countResult.count,
+          detections: countResult.detections as any
         }
       } catch (err) {
-        console.error("YOLO Counting Error:", err)
+        console.error("Counting Model Error:", err)
       }
+    }
+
+    let mouserResults = null
+    if (idResult.name) {
+      mouserResults = await searchMouserProduct(idResult.name)
     }
 
     const finalAnalysis = {
       ...idResult,
-      ...quantityResult
+      ...quantityResult,
+      mouserData: mouserResults?.[0] || null,
+      mouserAlternatives: mouserResults || []
     }
 
     await db.update(scanSessions)
