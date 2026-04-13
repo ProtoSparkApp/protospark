@@ -13,7 +13,25 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [password, setPassword] = useState("");
   const router = useRouter();
+
+  const getPasswordStrength = (pass: string) => {
+    if (pass.length === 0) return { label: "", color: "", barColor: "", width: "w-0" };
+    if (pass.length < 8) return { label: "TOO SHORT", color: "text-red-500", barColor: "bg-red-500", width: "w-1/4" };
+
+    let score = 0;
+    if (/[a-z]/.test(pass)) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/\d/.test(pass)) score++;
+    if (/[^a-zA-Z\d]/.test(pass)) score++;
+
+    if (score < 3) return { label: "WEAK", color: "text-orange-500", barColor: "bg-orange-500", width: "w-2/4" };
+    if (score === 3) return { label: "GOOD", color: "text-blue-500", barColor: "bg-blue-500", width: "w-3/4" };
+    return { label: "STRONG", color: "text-emerald-500", barColor: "bg-emerald-500", width: "w-full" };
+  };
+
+  const strength = getPasswordStrength(password);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -30,9 +48,6 @@ export default function RegisterPage() {
       setLoading(false);
     } else {
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
     }
   }
 
@@ -42,7 +57,10 @@ export default function RegisterPage() {
         <div className="w-full max-w-md bg-white border-4 border-black p-12 shadow-[12px_12px_0px_#6c72ff] text-center">
           <CheckCircle2 size={64} className="mx-auto text-brand mb-6" />
           <h2 className="text-4xl font-black uppercase tracking-tighter italic">Identity Registered</h2>
-          <p className="mt-4 font-mono text-xs font-bold uppercase text-black/60">Redirecting to Login sequence...</p>
+          <p className="mt-4 font-mono text-xs font-bold uppercase text-black/60 mb-6">Check your inbox to verify your email address before logging in.</p>
+          <Link href="/login">
+            <Button variant="neo" className="w-full cursor-target">Proceed to Login</Button>
+          </Link>
         </div>
       </div>
     )
@@ -69,7 +87,30 @@ export default function RegisterPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" placeholder="MINIMUM 8 CHARACTERS" required />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="MINIMUM 8 CHARACTERS"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {password.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-[10px] font-bold uppercase text-black/60">
+                    Security Level:
+                  </span>
+                  <span className={`font-mono text-xs font-black uppercase ${strength.color}`}>
+                    {strength.label}
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-black/5 border border-black/20">
+                  <div className={`h-full transition-all duration-300 ${strength.barColor} ${strength.width}`}></div>
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -79,7 +120,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <Button variant="neo" className="w-full h-14 text-lg" disabled={loading}>
+          <Button variant="neo" className="w-full h-14 text-lg cursor-target" disabled={loading || !password || strength.label === "TOO SHORT" || strength.label === "WEAK"}>
             {loading ? <Loader2 className="animate-spin" /> : "Authorize User"}
           </Button>
         </form>

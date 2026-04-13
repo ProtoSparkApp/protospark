@@ -21,7 +21,13 @@ export function ManualAddForm({
 }: {
   onClose: () => void,
   initialData?: any
-}) {
+export function ManualAddForm({
+    onClose,
+    initialData
+  }: {
+    onClose: () => void,
+    initialData?: any
+  }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [confirmation, setConfirmation] = useState<{
@@ -79,6 +85,7 @@ export function ManualAddForm({
     setLoading(true);
     setErrors({});
 
+
     const data = {
       name: formData.get("name"),
       category: formData.get("category"),
@@ -94,6 +101,7 @@ export function ManualAddForm({
     } else {
       result = await addComponent(data);
     }
+
 
     setLoading(false);
 
@@ -219,6 +227,7 @@ export function ManualAddForm({
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
               {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
 
@@ -247,6 +256,7 @@ export function ManualAddForm({
               disabled={loading || !!confirmation}
             />
             {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
+            {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
           </div>
 
           <div className="space-y-2">
@@ -259,6 +269,7 @@ export function ManualAddForm({
               disabled={loading || !!confirmation}
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
+              {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
               {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
             </select>
           </div>
@@ -279,6 +290,7 @@ export function ManualAddForm({
         <AnimatePresence>
           {confirmation && (
             <motion.div
+              <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -312,7 +324,26 @@ export function ManualAddForm({
                             </div>
                           </div>
 
+
                           <div className="flex gap-2">
+                            <Button
+                              variant="neo"
+                              size="xs"
+                              type="button"
+                              className="flex-1 bg-black text-white hover:bg-black/80 h-8 text-[9px]"
+                              onClick={() => handleUpdateExisting(item, 'add')}
+                            >
+                              Use this: Add +{confirmation.data.quantity}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              type="button"
+                              className="flex-1 border-2 border-black h-8 text-[9px] font-bold bg-white"
+                              onClick={() => handleUpdateExisting(item, 'replace')}
+                            >
+                              Use this: Replace with {confirmation.data.quantity}
+                            </Button>
                             <Button
                               variant="neo"
                               size="xs"
@@ -343,12 +374,20 @@ export function ManualAddForm({
                     variant="neo"
                     size="sm"
                     type="button"
+                  <Button
+                    variant="neo"
+                    size="sm"
+                    type="button"
                     className="bg-yellow-400 hover:bg-yellow-500 text-black border-2 border-black shadow-[2px_2px_0px_#000] h-10 px-4"
                     onClick={handleConfirm}
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="animate-spin" /> : "Add Anyway"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
                   <Button
                     variant="outline"
                     size="sm"

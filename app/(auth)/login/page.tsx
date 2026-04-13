@@ -44,7 +44,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="password">Password</Label>
-              <Link href="#" className="font-mono text-[10px] font-bold uppercase hover:text-brand transition-colors underline">Forgot Access?</Link>
+              <Link href="/forgot-password" className="font-mono text-[10px] font-bold uppercase hover:text-brand transition-colors underline cursor-target">Forgot Access?</Link>
             </div>
             <Input id="password" name="password" type="password" required />
           </div>
