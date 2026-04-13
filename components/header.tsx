@@ -46,7 +46,7 @@ export async function Header() {
                   <Button variant="ghost" size="sm" className="font-heading font-black uppercase text-xs">Sign In</Button>
                 </Link>
                 <Link href="/register">
-                  <Button variant="neo" size="sm">Get Started</Button>
+                  <Button variant="neo" size="sm" className="cursor-target">Get Started</Button>
                 </Link>
               </div>
             </div>

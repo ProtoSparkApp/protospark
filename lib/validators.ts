@@ -38,10 +38,26 @@ export const componentSchema = z.object({
 
 export type ComponentInput = z.infer<typeof componentSchema>;
 
+export const passwordSchema = z.string().min(8, "Password must be at least 8 characters").refine(
+  (pass) => {
+     let score = 0;
+     if (/[a-z]/.test(pass)) score++;
+     if (/[A-Z]/.test(pass)) score++;
+     if (/\d/.test(pass)) score++;
+     if (/[^a-zA-Z\d]/.test(pass)) score++;
+     return score >= 3;
+  }, 
+  "Password is too weak. Must contain at least 3 of: lowercase, uppercase, numbers, symbols."
+);
+
 export const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({

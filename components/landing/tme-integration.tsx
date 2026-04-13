@@ -10,7 +10,7 @@ export function TMEIntegration() {
       <div className="container mx-auto px-4">
         <div className="bg-black text-white border-4 border-black p-10 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-full bg-brand/20 -skew-x-12 translate-x-32"></div>
-          
+
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-6">
               <div className="flex items-center gap-4">
@@ -26,7 +26,7 @@ export function TMEIntegration() {
                 Found a project but missing a specialized MCU or sensor? One click sends your entire "Missing Parts" bill of materials to TME for fast global shipping.
               </p>
               <div className="flex gap-4">
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" className="cursor-target">
                   Browse TME Catalog
                 </Button>
               </div>
@@ -51,9 +51,9 @@ export function TMEIntegration() {
             </div>
           </div>
 
-          {}
+          { }
           <div className="absolute -bottom-10 -right-10 opacity-10 pointer-events-none">
-             <span className="text-[8rem] font-black uppercase leading-none select-none">TME</span>
+            <span className="text-[8rem] font-black uppercase leading-none select-none">TME</span>
           </div>
         </div>
       </div>
