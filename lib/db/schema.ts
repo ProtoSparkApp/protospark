@@ -96,6 +96,7 @@ export const projects = pgTable("project", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   instructions: jsonb("instructions").notNull(),
+  mermaidDiagram: text("mermaidDiagram"),
   schematicUrl: text("schematicUrl"),
   requiredComponents: jsonb("requiredComponents").notNull(),
   difficulty: text("difficulty").notNull(),

@@ -10,6 +10,9 @@ import { addComponent, updateComponent } from "@/lib/actions/inventory"
 import { toast } from "sonner"
 import { formatError } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { Search } from "lucide-react"
+import { lookupMouserProduct } from "@/lib/actions/mouser"
+import { MouserSelector, MouserProduct } from "./mouser-selector"
 
 
 export function ManualAddForm({
@@ -18,7 +21,13 @@ export function ManualAddForm({
 }: {
   onClose: () => void,
   initialData?: any
-}) {
+export function ManualAddForm({
+    onClose,
+    initialData
+  }: {
+    onClose: () => void,
+    initialData?: any
+  }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [confirmation, setConfirmation] = useState<{
@@ -27,12 +36,55 @@ export function ManualAddForm({
     similar: any[],
     data: any
   } | null>(null);
+  const [searchingTme, setSearchingTme] = useState(false);
+  const [formValues, setFormValues] = useState<any>(initialData || {
+    name: "",
+    category: categoryEnum[0],
+    value: "",
+    unit: "None",
+    quantity: 1,
+    description: ""
+  });
+  const [mouserResults, setMouserResults] = useState<MouserProduct[] | null>(null);
 
   const isEditing = !!initialData;
+
+  async function handleMouserLookup() {
+    if (!formValues.name) {
+      toast.error("Enter a part number first");
+      return;
+    }
+
+    setSearchingTme(true);
+    const result = await lookupMouserProduct(formValues.name);
+    setSearchingTme(false);
+
+    if (result.success && result.products) {
+      if (result.products.length === 1) {
+        handleProductSelect(result.products[0]);
+      } else {
+        setMouserResults(result.products);
+      }
+    } else {
+      toast.error(result.error || "No match found in Mouser");
+    }
+  }
+
+  function handleProductSelect(product: MouserProduct) {
+    setFormValues((prev: any) => ({
+      ...prev,
+      name: product.name,
+      description: product.description,
+      producer: product.producer,
+    }));
+    setMouserResults(null);
+    toast.success("Details fetched from Mouser");
+  }
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setErrors({});
+
 
     const data = {
       name: formData.get("name"),
@@ -49,6 +101,7 @@ export function ManualAddForm({
     } else {
       result = await addComponent(data);
     }
+
 
     setLoading(false);
 
@@ -108,6 +161,16 @@ export function ManualAddForm({
 
   return (
     <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_#000] w-full max-w-lg relative max-h-[90vh] overflow-y-auto">
+      <AnimatePresence>
+        {mouserResults && (
+          <MouserSelector
+            products={mouserResults}
+            onSelect={handleProductSelect}
+            onClose={() => setMouserResults(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <button
         onClick={onClose}
         className="absolute top-4 right-4 p-2 border-2 border-black hover:bg-black hover:text-white transition-colors"
@@ -128,14 +191,28 @@ export function ManualAddForm({
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-2 col-span-2">
             <Label htmlFor="name">Component Name</Label>
-            <Input
-              name="name"
-              id="name"
-              placeholder="E.G. ATMEGA328P"
-              required
-              defaultValue={initialData?.name}
-              disabled={loading || !!confirmation}
-            />
+            <div className="flex gap-2">
+              <Input
+                name="name"
+                id="name"
+                placeholder="E.G. ATMEGA328P"
+                required
+                value={formValues.name}
+                onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                disabled={loading || !!confirmation}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0 border-2 border-black h-10 px-3 hover:bg-blue-50"
+                onClick={handleMouserLookup}
+                disabled={loading || searchingTme || !!confirmation}
+              >
+                {searchingTme ? <Loader2 className="animate-spin" size={16} /> : <Search size={16} />}
+                <span className="ml-2 text-[10px] font-black uppercase">Lookup</span>
+              </Button>
+            </div>
             {errors.name && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.name[0]}</p>}
           </div>
 
@@ -144,10 +221,12 @@ export function ManualAddForm({
             <select
               name="category"
               id="category"
-              defaultValue={initialData?.category}
+              value={formValues.category}
+              onChange={(e) => setFormValues({ ...formValues, category: e.target.value })}
               disabled={loading || !!confirmation}
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
+              {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
@@ -158,7 +237,8 @@ export function ManualAddForm({
               name="quantity"
               id="quantity"
               type="number"
-              defaultValue={initialData?.quantity ?? "1"}
+              value={formValues.quantity}
+              onChange={(e) => setFormValues({ ...formValues, quantity: e.target.value })}
               required
               disabled={loading || !!confirmation}
             />
@@ -170,10 +250,12 @@ export function ManualAddForm({
               name="value"
               id="value"
               placeholder="10k, ESP32, etc"
-              defaultValue={initialData?.value}
+              value={formValues.value}
+              onChange={(e) => setFormValues({ ...formValues, value: e.target.value })}
               required
               disabled={loading || !!confirmation}
             />
+            {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
             {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
           </div>
 
@@ -182,18 +264,33 @@ export function ManualAddForm({
             <select
               name="unit"
               id="unit"
-              defaultValue={initialData?.unit}
+              value={formValues.unit}
+              onChange={(e) => setFormValues({ ...formValues, unit: e.target.value })}
               disabled={loading || !!confirmation}
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
+              {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
               {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
             </select>
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Input
+            name="description"
+            id="description"
+            placeholder="Technical details..."
+            value={formValues.description || ""}
+            onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
+            disabled={loading || searchingTme || !!confirmation}
+          />
+        </div>
+
         <AnimatePresence>
           {confirmation && (
             <motion.div
+              <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -227,7 +324,26 @@ export function ManualAddForm({
                             </div>
                           </div>
 
+
                           <div className="flex gap-2">
+                            <Button
+                              variant="neo"
+                              size="xs"
+                              type="button"
+                              className="flex-1 bg-black text-white hover:bg-black/80 h-8 text-[9px]"
+                              onClick={() => handleUpdateExisting(item, 'add')}
+                            >
+                              Use this: Add +{confirmation.data.quantity}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              type="button"
+                              className="flex-1 border-2 border-black h-8 text-[9px] font-bold bg-white"
+                              onClick={() => handleUpdateExisting(item, 'replace')}
+                            >
+                              Use this: Replace with {confirmation.data.quantity}
+                            </Button>
                             <Button
                               variant="neo"
                               size="xs"
@@ -258,12 +374,20 @@ export function ManualAddForm({
                     variant="neo"
                     size="sm"
                     type="button"
+                  <Button
+                    variant="neo"
+                    size="sm"
+                    type="button"
                     className="bg-yellow-400 hover:bg-yellow-500 text-black border-2 border-black shadow-[2px_2px_0px_#000] h-10 px-4"
                     onClick={handleConfirm}
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="animate-spin" /> : "Add Anyway"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
                   <Button
                     variant="outline"
                     size="sm"

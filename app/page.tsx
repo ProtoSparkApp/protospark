@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FeatureScan } from "@/components/landing/feature-scan";
 import { ComponentMarquee } from "@/components/landing/marquee";
 import { BentoGallery } from "@/components/landing/bento-gallery";
-import { TMEIntegration } from "@/components/landing/tme-integration";
+import { MouserIntegration } from "@/components/landing/mouser-integration";
 import { Hero } from "@/components/landing/hero";
 import TargetCursor from "@/components/TargetCursor";
 import FaultyTerminal from "@/components/FaultyTerminal";
@@ -20,7 +20,7 @@ export default function Home() {
 
         <BentoGallery />
 
-        <TMEIntegration />
+        <MouserIntegration />
 
         { }
         <section className="py-32 bg-zinc-950 border-t-4 border-black flex flex-col items-center justify-center text-center relative overflow-hidden">
