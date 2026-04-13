@@ -18,13 +18,13 @@ export default function RegisterPage() {
   async function handleSubmit(formData: FormData) {
     setLoading(true);
     setError(null);
-    
+
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
     const res = await register({ name, email, password });
-    
+
     if (res?.error) {
       setError(res.error);
       setLoading(false);
@@ -68,14 +68,14 @@ export default function RegisterPage() {
             <Input id="email" name="email" type="email" placeholder="ADMIN@PROTOSPARK.APP" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Security Code</Label>
+            <Label htmlFor="password">Password</Label>
             <Input id="password" name="password" type="password" placeholder="MINIMUM 8 CHARACTERS" required />
           </div>
 
           {error && (
             <div className="bg-red-50 border-2 border-red-500 p-3 text-red-500 font-mono text-xs font-bold uppercase flex items-center gap-2">
-               <span className="bg-red-500 text-white size-5 flex items-center justify-center rounded-none font-black text-[10px]">!</span>
-               {error}
+              <span className="bg-red-500 text-white size-5 flex items-center justify-center rounded-none font-black text-[10px]">!</span>
+              {error}
             </div>
           )}
 
@@ -88,7 +88,7 @@ export default function RegisterPage() {
           Pre-authenticated? <Link href="/login" className="text-brand underline decoration-brand decoration-2 underline-offset-4 hover:text-black hover:decoration-black transition-colors">Access Login</Link>
         </p>
 
-        {}
+        { }
         <div className="absolute -top-2 -left-2 size-4 border-t-4 border-l-4 border-black"></div>
         <div className="absolute -bottom-2 -right-2 size-4 border-b-4 border-r-4 border-black"></div>
       </div>

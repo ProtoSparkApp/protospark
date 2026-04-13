@@ -43,7 +43,7 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label htmlFor="password">Security Code</Label>
+              <Label htmlFor="password">Password</Label>
               <Link href="#" className="font-mono text-[10px] font-bold uppercase hover:text-brand transition-colors underline">Forgot Access?</Link>
             </div>
             <Input id="password" name="password" type="password" required />
@@ -80,7 +80,7 @@ export default function LoginPage() {
           New Builder? <Link href="/register" className="text-brand underline decoration-brand decoration-2 underline-offset-4 hover:text-black hover:decoration-black transition-colors">Register Identity</Link>
         </p>
 
-        {}
+        { }
         <div className="absolute -top-2 -left-2 size-4 border-t-4 border-l-4 border-black"></div>
         <div className="absolute -bottom-2 -right-2 size-4 border-b-4 border-r-4 border-black"></div>
       </div>

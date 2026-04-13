@@ -15,12 +15,12 @@ const components = [
 
 export function ComponentMarquee() {
   return (
-    <div className="relative border-y-4 border-black bg-white py-6 overflow-hidden">
+    <div className="relative border-y-4 border-black bg-white py-4 overflow-hidden">
       <div className="flex whitespace-nowrap">
         <motion.div
           animate={{ x: ["0%", "-50%"] }}
           transition={{ duration: 30, ease: "linear", repeat: Infinity }}
-          className="flex gap-12 items-center"
+          className="flex gap-8 items-center"
         >
           {[...components, ...components, ...components].map((comp, i) => (
             <div key={i} className="flex items-center gap-4 group">
@@ -28,7 +28,7 @@ export function ComponentMarquee() {
                 <comp.icon size={24} weight="bold" className="text-brand" />
               </div>
               <div className="flex flex-col">
-                <span className="font-heading font-black uppercase text-xl tracking-tighter leading-none">
+                <span className="font-heading font-black uppercase text-lg tracking-tighter leading-none">
                   {comp.name}
                 </span>
                 <span className="font-mono text-[10px] uppercase font-bold text-black/50">

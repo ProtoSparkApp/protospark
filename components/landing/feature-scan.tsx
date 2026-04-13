@@ -54,17 +54,17 @@ export function FeatureScan() {
             </div>
           </div>
 
-          <div className="order-1 lg:order-2 space-y-8">
-            <div className="inline-flex items-center gap-2 bg-brand text-white px-4 py-1 border-2 border-black font-bold uppercase text-xs">
+          <div className="order-1 lg:order-2 space-y-6">
+            <div className="inline-flex items-center gap-2 bg-brand text-white px-3 py-1 border-2 border-black font-bold uppercase text-[10px]">
               <Camera weight="fill" />
               Vision Engine v2.0
             </div>
-            <h2 className="text-5xl md:text-7xl font-black leading-none uppercase tracking-tighter">
+            <h2 className="text-4xl md:text-6xl font-black leading-none uppercase tracking-tighter">
               Stop <br />
               <span className="bg-brand text-white px-2">Manual</span> <br />
               Inventory.
             </h2>
-            <p className="text-xl font-medium leading-relaxed max-w-md">
+            <p className="text-lg font-medium leading-relaxed max-w-md text-black/70">
               Dumping your parts bin? Take a photo. Our neural engine identifies 1,000+ electronic components in seconds including small SMT parts and ICs.
             </p>
             <ul className="space-y-4">

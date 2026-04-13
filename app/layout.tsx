@@ -20,6 +20,8 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -47,6 +49,23 @@ export default function RootLayout({
             <Header />
             {children}
           </div>
+          <Toaster 
+            position="bottom-right" 
+            richColors 
+            theme="light" 
+            toastOptions={{
+              style: {
+                borderRadius: '0px',
+                border: '4px solid black',
+                boxShadow: '8px 8px 0px 0px rgba(0,0,0,1)',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                fontSize: '12px',
+              },
+              className: "brutal-toast",
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>
