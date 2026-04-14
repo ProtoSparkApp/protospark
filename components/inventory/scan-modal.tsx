@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { QRCodeSVG } from "qrcode.react"
-import { X, Smartphone, MonitorSmartphone, Camera, ChevronRight, Loader2, Check } from "lucide-react"
+import { X, Smartphone, MonitorSmartphone, Camera, ChevronRight, Loader2, Check, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatError } from "@/lib/utils"
 
@@ -12,6 +12,7 @@ import { addComponent } from "@/lib/actions/inventory"
 import { useRef } from "react"
 import { toast } from "sonner"
 import { MouserSelector } from "./mouser-selector"
+import { ResistorCalculator } from "./resistor-calculator"
 
 export function ScanModal({ onClose }: { onClose: () => void }) {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -26,6 +27,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
   const [isSaving, setIsSaving] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const initialized = useRef(false)
 
@@ -100,6 +102,22 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      if (step === 1) {
+        setImages(prev => ({ ...prev, step1: dataUrl }))
+        setStep(2)
+      } else {
+        setImages(prev => ({ ...prev, step2: dataUrl }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleStartProcessing = async () => {
     if (!sessionId || !images.step1 || !images.step2) return
     setConnecting(true)
@@ -132,6 +150,47 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
       toast.error(formatError(res.error) || "Save failed")
     }
     setIsSaving(false)
+  }
+
+  const [isRevalidating, setIsRevalidating] = useState(false)
+  
+  const revalidateMouser = async (newValue?: string, newUnit?: string) => {
+    if (!result) return
+    setIsRevalidating(true)
+    
+    // Construct new search query
+    const category = result.category || ""
+    const val = newValue || result.value
+    const unit = newUnit || result.unit
+    const query = `${val}${unit !== 'None' ? unit : ''} ${category}`
+    
+    const { lookupMouserProduct } = await import("@/lib/actions/mouser")
+    const res = await lookupMouserProduct(query, result.category)
+    
+    if (res.success && res.products && res.products.length > 0) {
+      const top = res.products[0]
+      setResult({
+        ...result,
+        value: val,
+        unit: unit as any,
+        name: top.name,
+        description: top.description,
+        mouserData: {
+          producer: top.producer,
+          description: top.description,
+          photo: top.photo,
+          datasheet: top.datasheet,
+          url: top.url,
+          price: top.price
+        },
+        mouserAlternatives: res.products
+      })
+      toast.success("Mouser data synchronized")
+    } else {
+       // Just update the value/unit if search fails
+       setResult({ ...result, value: val, unit: unit as any, description: `${category} ${val}${unit !== 'None' ? unit : ''}` })
+    }
+    setIsRevalidating(false)
   }
 
   useEffect(() => {
@@ -184,6 +243,14 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
         >
           <X size={24} />
         </button>
+
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={handleFileSelect}
+        />
 
         <AnimatePresence>
           {showMouserSelector && result?.mouserAlternatives && (
@@ -240,14 +307,27 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                   Activate the built-in webcam. Optimal for large components or if you have a secondary macro-lens setup.
                 </p>
 
-                <Button
-                  size="xl"
-                  variant="neo"
-                  className="w-full max-w-xs font-black uppercase z-10 relative shadow-[4px_4px_0px_#000]"
-                  onClick={startCamera}
-                >
-                  <Camera className="mr-2" /> Start Lens
-                </Button>
+                <div className="flex gap-2 w-full max-w-xs">
+                  <Button
+                    size="xl"
+                    variant="neo"
+                    className="flex-1 font-black uppercase z-10 relative shadow-[4px_4px_0px_#000]"
+                    onClick={startCamera}
+                  >
+                    <Camera className="mr-2" /> Lens
+                  </Button>
+                  <Button
+                    size="xl"
+                    variant="outline"
+                    className="px-4 border-2 border-black z-10 relative shadow-[4px_4px_0px_#000]"
+                    onClick={() => {
+                      setView('local_camera');
+                      setTimeout(() => fileInputRef.current?.click(), 100);
+                    }}
+                  >
+                    <ImageIcon />
+                  </Button>
+                </div>
               </div>
 
               <div className="p-8 flex flex-col justify-center items-center relative transition-colors hover:bg-zinc-100">
@@ -314,16 +394,26 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
               {step === 1 ? (
                 <div className="flex flex-col items-center gap-4">
                   <p className="text-white font-black uppercase text-sm tracking-tight italic">Step 1: Focus on component markings</p>
-                  <Button size="xl" className="bg-white text-black hover:bg-zinc-200" onClick={capturePhoto}>
-                    Capture Identification
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button size="xl" className="bg-white text-black hover:bg-zinc-200" onClick={capturePhoto}>
+                      Capture Identification
+                    </Button>
+                    <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => fileInputRef.current?.click()}>
+                      <ImageIcon className="mr-2" /> Gallery
+                    </Button>
+                  </div>
                 </div>
               ) : !images.step2 ? (
                 <div className="flex flex-col items-center gap-4">
                   <p className="text-white font-black uppercase text-sm tracking-tight italic">Step 2: Shot of all items for counting</p>
-                  <Button size="xl" className="bg-white text-black hover:bg-zinc-200" onClick={capturePhoto}>
-                    Capture For Counting
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button size="xl" className="bg-white text-black hover:bg-zinc-200" onClick={capturePhoto}>
+                      Capture For Counting
+                    </Button>
+                    <Button size="xl" variant="outline" className="border-white text-white hover:bg-white/10" onClick={() => fileInputRef.current?.click()}>
+                      <ImageIcon className="mr-2" /> Gallery
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4">
@@ -408,9 +498,21 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-white border-2 border-black">
+                    <div className="p-4 bg-white border-2 border-black group">
                       <span className="block text-[8px] font-black uppercase text-black/40 mb-1">Stock Identified</span>
-                      <span className="text-3xl font-black">{result.estimatedQuantity} PCS</span>
+                      <div className="flex items-baseline gap-1">
+                        <input
+                          type="number"
+                          value={result.quantity}
+                          min="1"
+                          className="text-3xl font-black bg-transparent w-24 outline-none focus:text-brand transition-colors"
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            setResult({ ...result, quantity: isNaN(val) ? 1 : val });
+                          }}
+                        />
+                        <span className="text-xl font-black text-black/20">PCS</span>
+                      </div>
                     </div>
                     <div className="p-4 bg-white border-2 border-black">
                       <span className="block text-[8px] font-black uppercase text-black/40 mb-1">Tech Profile</span>
@@ -431,6 +533,16 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                       </a>
                     )}
                   </div>
+
+                  {result.category === "Resistor" && (
+                    <ResistorCalculator 
+                      isRevalidating={isRevalidating}
+                      onUpdate={(val, unit) => {
+                        setResult({ ...result, value: val, unit: unit as any })
+                      }}
+                      onSync={() => revalidateMouser()}
+                    />
+                  )}
 
                   {result.mouserData?.photo && (
                     <div className="space-y-2">

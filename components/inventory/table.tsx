@@ -19,9 +19,11 @@ import { toast } from "sonner"
 import { useDebounce } from "@/hooks/use-debounce"
 
 export function InventoryTable({
-  filters
+  filters,
+  refreshKey
 }: {
-  filters?: { search: string, category?: string }
+  filters?: { search: string, category?: string },
+  refreshKey?: number
 }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export function InventoryTable({
 
   useEffect(() => {
     fetchInventory();
-  }, [page, debouncedSearch, filters?.category]);
+  }, [page, debouncedSearch, filters?.category, refreshKey]);
 
   useEffect(() => {
     setPage(1);
