@@ -21,13 +21,7 @@ export function ManualAddForm({
 }: {
   onClose: () => void,
   initialData?: any
-export function ManualAddForm({
-    onClose,
-    initialData
-  }: {
-    onClose: () => void,
-    initialData?: any
-  }) {
+}) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [confirmation, setConfirmation] = useState<{
@@ -290,7 +284,6 @@ export function ManualAddForm({
         <AnimatePresence>
           {confirmation && (
             <motion.div
-              <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -374,20 +367,12 @@ export function ManualAddForm({
                     variant="neo"
                     size="sm"
                     type="button"
-                  <Button
-                    variant="neo"
-                    size="sm"
-                    type="button"
                     className="bg-yellow-400 hover:bg-yellow-500 text-black border-2 border-black shadow-[2px_2px_0px_#000] h-10 px-4"
                     onClick={handleConfirm}
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="animate-spin" /> : "Add Anyway"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
                   <Button
                     variant="outline"
                     size="sm"
