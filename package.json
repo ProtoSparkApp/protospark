@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "dev:lan": "next dev -H 192.168.100.3 --experimental-https",
+    "dev:lan1": "next dev -H 192.168.100.3 --experimental-https",
+    "dev:lan2": "next dev -H 192.168.3.6 --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

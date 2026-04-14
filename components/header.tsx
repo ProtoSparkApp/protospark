@@ -36,14 +36,14 @@ export async function Header() {
                 <img src={session.user.image} alt="User" className="size-10 border-2 border-black rounded-none" />
               )}
               <form action={logout}>
-                <Button variant="outline" size="sm">Logout</Button>
+                <Button variant="outline" size="sm" className="cursor-target">Logout</Button>
               </form>
             </div>
           ) : (
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex items-center gap-4">
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="font-heading font-black uppercase text-xs">Sign In</Button>
+                  <Button variant="ghost" size="sm" className="font-heading font-black uppercase text-xs cursor-target">Sign In</Button>
                 </Link>
                 <Link href="/register">
                   <Button variant="neo" size="sm" className="cursor-target">Get Started</Button>
