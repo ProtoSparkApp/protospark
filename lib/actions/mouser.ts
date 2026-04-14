@@ -2,9 +2,9 @@
 
 import { searchMouserProduct } from "@/lib/mouser";
 
-export async function lookupMouserProduct(symbol: string) {
+export async function lookupMouserProduct(symbol: string, category?: string) {
   try {
-    const products = await searchMouserProduct(symbol);
+    const products = await searchMouserProduct(symbol, category);
     if (!products || products.length === 0) return { error: "Product not found in Mouser catalog" };
     
     return { 

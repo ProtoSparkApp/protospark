@@ -1,13 +1,19 @@
 const MOUSER_API_URL = "https://api.mouser.com/api/v2";
 const API_KEY = process.env.MOUSER_SECRET;
 
-export async function searchMouserProduct(keyword: string) {
+export async function searchMouserProduct(keyword: string, categoryHint?: string) {
   if (!API_KEY) {
     console.warn("Mouser API key missing");
     return null;
   }
 
   try {
+    // Clean keyword for better matching
+    let searchString = keyword;
+    if (categoryHint === "Resistor" && !searchString.toLowerCase().includes("fixed")) {
+        searchString += " Fixed Resistor";
+    }
+
     const url = `${MOUSER_API_URL}/search/keyword?apiKey=${API_KEY}`;
     
     const response = await fetch(url, {
@@ -18,9 +24,10 @@ export async function searchMouserProduct(keyword: string) {
       },
       body: JSON.stringify({
         SearchByKeywordRequest: {
-          keyword: keyword,
-          records: 10,
+          keyword: searchString,
+          records: 30, // Get more to filter properly
           startingRecord: 0,
+          searchOptions: "Text",
         }
       }),
     });
@@ -32,7 +39,7 @@ export async function searchMouserProduct(keyword: string) {
     const data = await response.json();
     
     if (data.SearchResults?.Parts?.length > 0) {
-      return data.SearchResults.Parts.map((part: any) => ({
+      let parts = data.SearchResults.Parts.map((part: any) => ({
         symbol: part.MouserPartNumber,
         manufacturer: part.Manufacturer,
         description: part.Description,
@@ -42,6 +49,26 @@ export async function searchMouserProduct(keyword: string) {
         url: part.ProductDetailUrl,
         price: part.PriceBreaks?.[0]?.Price
       }));
+
+      // Advanced filtering based on categoryHint
+      if (categoryHint === "Resistor") {
+        const filtered = parts.filter((p: any) => 
+            p.category?.toLowerCase().includes("fixed resistor") || 
+            (p.category?.toLowerCase().includes("resistor") && 
+             !p.category?.toLowerCase().includes("potentiometer") && 
+             !p.category?.toLowerCase().includes("variable") &&
+             !p.description?.toLowerCase().includes("trimmer"))
+        );
+        if (filtered.length > 0) parts = filtered;
+      }
+
+      // Base filter for unknown data
+      const finalParts = parts.filter((p: any) => 
+        p.manufacturer?.toLowerCase() !== 'unknown' && 
+        p.symbol?.toLowerCase() !== 'unknown'
+      );
+
+      return finalParts.length > 0 ? finalParts : parts;
     }
     
     return null;

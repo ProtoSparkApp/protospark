@@ -15,18 +15,31 @@ export default function InventoryPage() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => setRefreshKey(prev => prev + 1);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 container mx-auto px-4 py-12 relative">
         {showAddForm && (
           <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <ManualAddForm onClose={() => setShowAddForm(false)} />
+            <ManualAddForm 
+              onClose={() => {
+                setShowAddForm(false);
+                handleRefresh();
+              }} 
+            />
           </div>
         )}
 
         {showScanModal && (
-          <ScanModal onClose={() => setShowScanModal(false)} />
+          <ScanModal 
+            onClose={() => {
+              setShowScanModal(false);
+              handleRefresh();
+            }} 
+          />
         )}
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
@@ -135,7 +148,10 @@ export default function InventoryPage() {
           </aside>
 
           <div className="lg:col-span-9">
-            <InventoryTable filters={{ search, category }} />
+            <InventoryTable 
+              refreshKey={refreshKey}
+              filters={{ search, category }} 
+            />
           </div>
         </div>
       </main>
