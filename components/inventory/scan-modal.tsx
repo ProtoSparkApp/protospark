@@ -142,7 +142,10 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
   const handleConfirmResult = async () => {
     if (!result) return
     setIsSaving(true)
-    const res = await addComponent(result, true)
+    const res = await addComponent({
+      ...result,
+      metadata: result.mouserData || {}
+    }, true)
     if (res.success) {
       toast.success("Component added to inventory")
       handleClose()
@@ -153,27 +156,27 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
   }
 
   const [isRevalidating, setIsRevalidating] = useState(false)
-  
+
   const revalidateMouser = async (newValue?: string, newUnit?: string) => {
     if (!result) return
     setIsRevalidating(true)
-    
-    // Construct new search query
+
     const category = result.category || ""
     const val = newValue || result.value
     const unit = newUnit || result.unit
     const query = `${val}${unit !== 'None' ? unit : ''} ${category}`
-    
+
     const { lookupMouserProduct } = await import("@/lib/actions/mouser")
     const res = await lookupMouserProduct(query, result.category)
-    
+
     if (res.success && res.products && res.products.length > 0) {
       const top = res.products[0]
       setResult({
         ...result,
         value: val,
         unit: unit as any,
-        name: top.name,
+        genericName: top.category || result.category,
+        mpn: top.name,
         description: top.description,
         mouserData: {
           producer: top.producer,
@@ -187,8 +190,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
       })
       toast.success("Mouser data synchronized")
     } else {
-       // Just update the value/unit if search fails
-       setResult({ ...result, value: val, unit: unit as any, description: `${category} ${val}${unit !== 'None' ? unit : ''}` })
+      setResult({ ...result, value: val, unit: unit as any, description: `${category} ${val}${unit !== 'None' ? unit : ''}` })
     }
     setIsRevalidating(false)
   }
@@ -244,11 +246,11 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
           <X size={24} />
         </button>
 
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
           onChange={handleFileSelect}
         />
 
@@ -268,7 +270,8 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
               onSelect={(p) => {
                 setResult({
                   ...result,
-                  name: p.name,
+                  genericName: p.category || result.category,
+                  mpn: p.name,
                   mouserData: {
                     producer: p.producer,
                     description: p.description,
@@ -474,7 +477,12 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                         </span>
                       )}
                     </div>
-                    <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">{result.name}</h3>
+                    <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">{result.genericName}</h3>
+                    {result.mpn && (
+                      <p className="font-mono text-xs font-black text-black/40 uppercase bg-zinc-200 px-2 py-1 inline-block mt-2 border border-black shadow-[2px_2px_0px_#000]">
+                        MPN: {result.mpn}
+                      </p>
+                    )}
                     <div className="flex justify-between items-center">
                       <div className="flex gap-2 items-center">
                         <p className="font-mono text-sm font-bold text-black/40 uppercase">{result.category}</p>
@@ -535,7 +543,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                   </div>
 
                   {result.category === "Resistor" && (
-                    <ResistorCalculator 
+                    <ResistorCalculator
                       isRevalidating={isRevalidating}
                       onUpdate={(val, unit) => {
                         setResult({ ...result, value: val, unit: unit as any })
@@ -590,7 +598,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                        {result?.detections && (
+                        {/* {result?.detections && (
                           <div className="absolute inset-0 pointer-events-none">
                             {result.detections.map((d: any, i: number) => (
                               <div
@@ -609,7 +617,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
                               </div>
                             ))}
                           </div>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>

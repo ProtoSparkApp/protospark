@@ -32,25 +32,54 @@ export function ManualAddForm({
   } | null>(null);
   const [searchingTme, setSearchingTme] = useState(false);
   const [formValues, setFormValues] = useState<any>(initialData || {
-    name: "",
+    genericName: "",
+    mpn: "",
+    manufacturer: "",
     category: categoryEnum[0],
     value: "",
     unit: "None",
     quantity: 1,
-    description: ""
+    description: "",
+    metadata: {}
   });
   const [mouserResults, setMouserResults] = useState<MouserProduct[] | null>(null);
+
+  function extractValueAndUnit(description: string, category: string) {
+    let value = "N/A";
+    let unit = "None";
+
+    if (category === "Resistor" || description.toLowerCase().includes("resistor")) {
+      const resUnitMatch = description.match(/(\d+(?:\.\d+)?)\s*(R|kOhm|MOhm|Ohm|k|M)(?:\s|$|\W)/i);
+      if (resUnitMatch) {
+        value = resUnitMatch[1];
+        const u = resUnitMatch[2].toLowerCase();
+        if (u.includes('k')) unit = 'kOhm';
+        else if (u.includes('m')) unit = 'MOhm';
+        else unit = 'Ohm';
+      }
+    } else if (category === "Capacitor" || description.toLowerCase().includes("capacitor")) {
+      const capUnitMatch = description.match(/(\d+(?:\.\d+)?)\s*(uF|nF|pF)(?:\s|$|\W)/i);
+      if (capUnitMatch) {
+        value = capUnitMatch[1];
+        const u = capUnitMatch[2].toLowerCase();
+        if (u === 'uf') unit = 'uF';
+        else if (u === 'nf') unit = 'nF';
+        else if (u === 'pf') unit = 'pF';
+      }
+    }
+    return { value, unit };
+  }
 
   const isEditing = !!initialData;
 
   async function handleMouserLookup() {
-    if (!formValues.name) {
-      toast.error("Enter a part number first");
+    if (!formValues.mpn) {
+      toast.error("Enter a part number (MPN) first");
       return;
     }
 
     setSearchingTme(true);
-    const result = await lookupMouserProduct(formValues.name);
+    const result = await lookupMouserProduct(formValues.mpn);
     setSearchingTme(false);
 
     if (result.success && result.products) {
@@ -65,11 +94,19 @@ export function ManualAddForm({
   }
 
   function handleProductSelect(product: MouserProduct) {
+    const { value, unit } = extractValueAndUnit(product.description, product.category || "");
+    const normalizedGenericName = product.category || "Component";
+
     setFormValues((prev: any) => ({
       ...prev,
-      name: product.name,
+      genericName: normalizedGenericName,
+      mpn: product.name,
+      manufacturer: product.producer,
       description: product.description,
-      producer: product.producer,
+      category: product.category || prev.category,
+      value: prev.value && prev.value !== "N/A" ? prev.value : value,
+      unit: prev.unit && prev.unit !== "None" ? prev.unit : unit,
+      metadata: product
     }));
     setMouserResults(null);
     toast.success("Details fetched from Mouser");
@@ -81,12 +118,15 @@ export function ManualAddForm({
 
 
     const data = {
-      name: formData.get("name"),
+      genericName: formData.get("genericName"),
+      mpn: formData.get("mpn") || null,
+      manufacturer: formData.get("manufacturer") || null,
       category: formData.get("category"),
-      value: formData.get("value"),
+      value: formData.get("value") || "N/A",
       unit: formData.get("unit"),
       quantity: formData.get("quantity"),
       description: formData.get("description") || null,
+      metadata: formValues.metadata || {}
     };
 
     let result;
@@ -184,15 +224,14 @@ export function ManualAddForm({
       <form action={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-2 col-span-2">
-            <Label htmlFor="name">Component Name</Label>
+            <Label htmlFor="mpn">Part Number (MPN) - Optional</Label>
             <div className="flex gap-2">
               <Input
-                name="name"
-                id="name"
-                placeholder="E.G. ATMEGA328P"
-                required
-                value={formValues.name}
-                onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                name="mpn"
+                id="mpn"
+                placeholder="E.G. HC-SR04, NE555"
+                value={formValues.mpn}
+                onChange={(e) => setFormValues({ ...formValues, mpn: e.target.value })}
                 disabled={loading || !!confirmation}
                 className="flex-1"
               />
@@ -207,7 +246,21 @@ export function ManualAddForm({
                 <span className="ml-2 text-[10px] font-black uppercase">Lookup</span>
               </Button>
             </div>
-            {errors.name && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.name[0]}</p>}
+            {errors.mpn && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.mpn[0]}</p>}
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <Label htmlFor="genericName">General Component Name</Label>
+            <Input
+              name="genericName"
+              id="genericName"
+              placeholder="E.G. Resistor, Capacitor, Microcontroller"
+              required
+              value={formValues.genericName}
+              onChange={(e) => setFormValues({ ...formValues, genericName: e.target.value })}
+              disabled={loading || !!confirmation}
+            />
+            {errors.genericName && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.genericName[0]}</p>}
           </div>
 
           <div className="space-y-2">
@@ -220,7 +273,6 @@ export function ManualAddForm({
               disabled={loading || !!confirmation}
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
-              {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               {categoryEnum.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
@@ -246,10 +298,8 @@ export function ManualAddForm({
               placeholder="10k, ESP32, etc"
               value={formValues.value}
               onChange={(e) => setFormValues({ ...formValues, value: e.target.value })}
-              required
               disabled={loading || !!confirmation}
             />
-            {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
             {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
           </div>
 
@@ -263,7 +313,6 @@ export function ManualAddForm({
               disabled={loading || !!confirmation}
               className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50"
             >
-              {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
               {unitEnum.map(unit => <option key={unit} value={unit}>{unit}</option>)}
             </select>
           </div>
@@ -306,7 +355,7 @@ export function ManualAddForm({
                         <div key={item.id} className="p-3 bg-yellow-200/50 border-2 border-yellow-400/50 space-y-3">
                           <div className="flex justify-between items-start">
                             <div className="flex flex-col">
-                              <span className="text-xs font-black uppercase text-black leading-tight">{item.name}</span>
+                              <span className="text-xs font-black uppercase text-black leading-tight">{item.genericName}</span>
                               <span className="text-[9px] font-mono font-bold uppercase text-black/50">
                                 {item.category} • {item.value}{item.unit !== "None" ? item.unit : ""}
                               </span>
@@ -319,24 +368,6 @@ export function ManualAddForm({
 
 
                           <div className="flex gap-2">
-                            <Button
-                              variant="neo"
-                              size="xs"
-                              type="button"
-                              className="flex-1 bg-black text-white hover:bg-black/80 h-8 text-[9px]"
-                              onClick={() => handleUpdateExisting(item, 'add')}
-                            >
-                              Use this: Add +{confirmation.data.quantity}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              type="button"
-                              className="flex-1 border-2 border-black h-8 text-[9px] font-bold bg-white"
-                              onClick={() => handleUpdateExisting(item, 'replace')}
-                            >
-                              Use this: Replace with {confirmation.data.quantity}
-                            </Button>
                             <Button
                               variant="neo"
                               size="xs"

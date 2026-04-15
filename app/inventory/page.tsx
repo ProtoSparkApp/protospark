@@ -24,21 +24,21 @@ export default function InventoryPage() {
       <main className="flex-1 container mx-auto px-4 py-12 relative">
         {showAddForm && (
           <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <ManualAddForm 
+            <ManualAddForm
               onClose={() => {
                 setShowAddForm(false);
                 handleRefresh();
-              }} 
+              }}
             />
           </div>
         )}
 
         {showScanModal && (
-          <ScanModal 
+          <ScanModal
             onClose={() => {
               setShowScanModal(false);
               handleRefresh();
-            }} 
+            }}
           />
         )}
 
@@ -137,7 +137,7 @@ export default function InventoryPage() {
               </Button>
             </div>
 
-            <div className="border-4 border-black p-6 bg-brand text-white shadow-[8px_8px_0px_#000]">
+            <div className="border-4 border-black p-6 bg-brand text-white shadow-brutal">
               <Download size={24} className="mb-4" />
               <h3 className="font-heading text-xl font-black uppercase leading-tight mb-2">Export Inventory</h3>
               <p className="text-xs font-bold leading-relaxed mb-4">Download your entire stock as CSV or JSON for offline engineering.</p>
@@ -148,9 +148,9 @@ export default function InventoryPage() {
           </aside>
 
           <div className="lg:col-span-9">
-            <InventoryTable 
+            <InventoryTable
               refreshKey={refreshKey}
-              filters={{ search, category }} 
+              filters={{ search, category }}
             />
           </div>
         </div>
