@@ -27,8 +27,8 @@ export async function generateProjectIdeas(limit: number = 5) {
   }
 
   const inventoryDescription = userComponents.map(c =>
-    `${c.name} (${c.value}${c.unit !== 'None' ? c.unit : ''}) x${c.quantity} - ${c.category}`
-  ).join(", ");
+    `${c.genericName} (${c.value}${c.unit !== 'None' ? ` ${c.unit}` : ''}) x${c.quantity} [Category: ${c.category}]`
+  ).join(",\n");
 
   try {
     const { object } = await generateObject({
@@ -51,16 +51,19 @@ export async function generateProjectIdeas(limit: number = 5) {
         emptyStockMessage: z.string().optional(),
       }),
       prompt: `Based on the following electronic components inventory, suggest ${limit} creative DIY projects. 
-      Inventory: ${inventoryDescription}
+      Inventory:
+      ${inventoryDescription}
       
       For each project:
       1. Provide a title and a short description.
       2. Set a difficulty level.
-      3. List individual components needed and mark if they are "In Stock" (based on inventory) or "Need to Buy".
+      3. List individual components needed and mark if they are "In Stock" (based on inventory) or "Need to Buy". For "In Stock" components, make sure to use their exact names and specifications from the inventory list above.If a watering system is suggested, strictly check if a "Water Pump" or "DC Motor" is in the Inventory. If not, it MUST be listed in "Need to Buy".
       4. If nothing can be built with these components, set canBuildAnything to false and suggest what basic starter kit or specific parts would be most useful to buy.
       
       Try to be as realistic as possible given the specific components.`,
     });
+
+    //Do not suggest "Need to Buy" components if there are suitable alternatives already "In Stock"
 
     return { success: true, ...object };
   } catch (error) {
@@ -110,24 +113,30 @@ export async function getProjectFullGuide(projectSummary: any) {
 }
 
 export async function saveProject(projectData: any) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { error: "Unauthorized. Please log in again." };
+    }
+
+    if (!projectData.title || !projectData.description) {
+      return { error: "Missing project metadata." };
+    }
+
     const [inserted] = await db.insert(projects).values({
       userId: session.user.id,
-      title: projectData.title,
-      description: projectData.description,
-      difficulty: projectData.difficulty,
-      requiredComponents: projectData.requiredComponents,
-      instructions: projectData.instructions,
-      mermaidDiagram: projectData.mermaidiagram,
+      title: projectData.title.trim(),
+      description: projectData.description.trim(),
+      difficulty: projectData.difficulty || "Beginner",
+      requiredComponents: projectData.requiredComponents || [],
+      instructions: projectData.instructions || [],
+      mermaidDiagram: projectData.mermaidiagram || null,
     }).returning();
 
     revalidatePath("/projects");
     return { success: true, project: inserted };
-  } catch (error) {
+  } catch (error: any) {
     console.error("DB Save Error:", error);
-    return { error: "Failed to save project." };
+    return { error: `Failed to save project: ${error.message || "Unknown error"}` };
   }
 }

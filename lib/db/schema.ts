@@ -79,11 +79,18 @@ export const verificationTokens = pgTable(
 export const components = pgTable("component", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
+  
+  genericName: text("genericName").notNull(), 
+  mpn: text("mpn"), 
+  manufacturer: text("manufacturer"),
+  
   category: categoryEnumPg("category").notNull(),
   value: text("value").notNull(),
   unit: unitEnumPg("unit").default("None").notNull(),
   quantity: integer("quantity").default(1).notNull(),
+  
+  metadata: jsonb("metadata").default({}).notNull(),
+  
   description: text("description"),
   imageUrl: text("imageUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

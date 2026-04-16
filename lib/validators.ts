@@ -1,38 +1,39 @@
 import { z } from "zod";
 
 export const categoryEnum = [
-  "Microcontroller",
   "Resistor",
   "Capacitor",
-  "Transistor",
-  "Diode",
+  "Inductor",
   "Integrated Circuit",
+  "Microcontroller",
   "Sensor",
   "Actuator",
-  "Power Supply",
   "Connector",
   "Other"
 ] as const;
 
 export const unitEnum = [
   "Ohm",
+  "kOhm",
+  "MOhm",
   "uF",
   "nF",
   "pF",
   "V",
   "A",
   "mA",
-  "Hz",
-  "MHz",
   "None"
 ] as const;
 
 export const componentSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(50),
-  category: z.enum(categoryEnum, "Please select a valid category"),
+  genericName: z.string().min(2, "Name must be at least 2 characters").max(50),
+  mpn: z.string().optional().nullable(),
+  manufacturer: z.string().optional().nullable(),
+  category: z.enum(categoryEnum, { errorMap: () => ({ message: "Please select a valid category" }) }),
   value: z.string().min(1, "Value is required"),
   unit: z.enum(unitEnum).default("None"),
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  metadata: z.any().optional().default({}),
   description: z.string().max(200).nullable().optional(),
 });
 

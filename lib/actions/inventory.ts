@@ -19,7 +19,6 @@ export async function updateComponent(id: string, formData: any): Promise<Invent
   if (!session?.user?.id) throw new Error("Unauthorized");
   const userId = session.user.id;
 
-
   const validated = componentSchema.safeParse(formData);
   if (!validated.success) {
     return { error: validated.error.flatten().fieldErrors };
@@ -48,43 +47,58 @@ export async function addComponent(formData: any, force = false): Promise<Invent
   if (!session?.user?.id) throw new Error("Unauthorized");
   const userId = session.user.id;
 
-
   const validated = componentSchema.safeParse(formData);
   if (!validated.success) {
     return { error: validated.error.flatten().fieldErrors };
   }
 
+  const { genericName, mpn, manufacturer, category, value, unit, quantity, metadata, description } = validated.data;
+
   try {
     const existingComponents = await db.query.components.findMany({
       where: eq(components.userId, userId),
-      columns: { id: true, name: true, category: true, value: true, unit: true, quantity: true }
     });
 
-    const existingNames = existingComponents.map((c: any) => c.name as string);
-    const directMatch = existingNames.find((n: string) => n.toLowerCase() === validated.data.name.toLowerCase());
+    const duplicate = existingComponents.find(c => {
+      if (mpn && c.mpn && mpn.trim().toLowerCase() === c.mpn.trim().toLowerCase()) {
+        return true;
+      }
+      return c.genericName.toLowerCase() === genericName.toLowerCase() &&
+        c.value === value &&
+        c.unit === unit;
+    });
 
-    if (!directMatch && !force) {
-      const similarNames = findSimilarStrings(validated.data.name, existingNames);
-      if (similarNames.length > 0) {
-        const similar = existingComponents.filter((c: any) => similarNames.includes(c.name));
-
+    if (duplicate) {
+      if (!force) {
         return {
           requiresConfirmation: true,
-          similar,
-          message: `The item "${validated.data.name}" doesn't exist yet, but there are similar items. Do you want to add it anyway?`
+          similar: [duplicate],
+          message: `Component (${genericName} ${mpn || ""}) is already in inventory. Do you want to update its stock?`
         };
-      } else if (existingNames.length > 0) {
-        return {
-          requiresConfirmation: true,
-          similar: [],
-          message: `"${validated.data.name}" is a new item name. Are you sure you want to add it?`
-        };
+      } else {
+        await db.update(components)
+          .set({
+            quantity: (duplicate.quantity || 0) + Number(quantity),
+            updatedAt: new Date()
+          })
+          .where(eq(components.id, duplicate.id));
+
+        revalidatePath("/inventory");
+        return { success: true };
       }
     }
 
     await db.insert(components).values({
-      ...validated.data,
-      userId: userId,
+      userId,
+      genericName,
+      mpn: mpn || null,
+      manufacturer: manufacturer || null,
+      category,
+      value,
+      unit,
+      quantity: Number(quantity),
+      metadata: metadata || {},
+      description: description || null,
     });
 
     revalidatePath("/inventory");
@@ -105,20 +119,13 @@ export async function getInventory(params: {
   if (!session?.user?.id) throw new Error("Unauthorized");
   const userId = session.user.id;
 
-
   const { page = 1, limit = 10, search, category } = params;
   const offset = (page - 1) * limit;
 
-  let whereClause = eq(components.userId, userId);
-
-
-
-
-
   const data = await db.query.components.findMany({
-    where: (comp: any, { eq, and, like }: any) => {
+    where: (comp: any, { eq, and, like, or }: any) => {
       const userIdMatch = eq(comp.userId, userId);
-      const searchMatch = search ? like(comp.name, `%${search}%`) : undefined;
+      const searchMatch = search ? or(like(comp.genericName, `%${search}%`), like(comp.mpn, `%${search}%`)) : undefined;
       const categoryMatch = category ? eq(comp.category, category as any) : undefined;
 
       return and(userIdMatch, searchMatch, categoryMatch);

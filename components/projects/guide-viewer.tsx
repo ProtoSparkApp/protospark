@@ -41,10 +41,10 @@ export function ProjectFullGuide({ idea, guide, onBack }: GuideProps) {
       if (res.success) {
         toast.success("Project saved to your dashboard!");
       } else {
-        toast.error("Failed to save project.");
+        toast.error(res.error || "Failed to save project.");
       }
-    } catch (e) {
-      toast.error("An error occurred.");
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred.");
     } finally {
       setSaving(false);
     }

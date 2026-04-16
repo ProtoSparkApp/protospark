@@ -8,14 +8,13 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
   }
 
   try {
-    // Clean keyword for better matching
     let searchString = keyword;
     if (categoryHint === "Resistor" && !searchString.toLowerCase().includes("fixed")) {
-        searchString += " Fixed Resistor";
+      searchString += " Fixed Resistor";
     }
 
     const url = `${MOUSER_API_URL}/search/keyword?apiKey=${API_KEY}`;
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -25,7 +24,7 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
       body: JSON.stringify({
         SearchByKeywordRequest: {
           keyword: searchString,
-          records: 30, // Get more to filter properly
+          records: 30,
           startingRecord: 0,
           searchOptions: "Text",
         }
@@ -37,7 +36,7 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
     }
 
     const data = await response.json();
-    
+
     if (data.SearchResults?.Parts?.length > 0) {
       let parts = data.SearchResults.Parts.map((part: any) => ({
         symbol: part.MouserPartNumber,
@@ -50,27 +49,25 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
         price: part.PriceBreaks?.[0]?.Price
       }));
 
-      // Advanced filtering based on categoryHint
       if (categoryHint === "Resistor") {
-        const filtered = parts.filter((p: any) => 
-            p.category?.toLowerCase().includes("fixed resistor") || 
-            (p.category?.toLowerCase().includes("resistor") && 
-             !p.category?.toLowerCase().includes("potentiometer") && 
-             !p.category?.toLowerCase().includes("variable") &&
-             !p.description?.toLowerCase().includes("trimmer"))
+        const filtered = parts.filter((p: any) =>
+          p.category?.toLowerCase().includes("fixed resistor") ||
+          (p.category?.toLowerCase().includes("resistor") &&
+            !p.category?.toLowerCase().includes("potentiometer") &&
+            !p.category?.toLowerCase().includes("variable") &&
+            !p.description?.toLowerCase().includes("trimmer"))
         );
         if (filtered.length > 0) parts = filtered;
       }
 
-      // Base filter for unknown data
-      const finalParts = parts.filter((p: any) => 
-        p.manufacturer?.toLowerCase() !== 'unknown' && 
+      const finalParts = parts.filter((p: any) =>
+        p.manufacturer?.toLowerCase() !== 'unknown' &&
         p.symbol?.toLowerCase() !== 'unknown'
       );
 
       return finalParts.length > 0 ? finalParts : parts;
     }
-    
+
     return null;
   } catch (error) {
     console.error("Mouser Search Error:", error);

@@ -136,13 +136,23 @@ export async function processScan(sessionId: string) {
       }
     }
 
+    const existingParts = await db.query.components.findMany({
+      where: (comp, { eq }) => eq(comp.userId, session.user.id),
+      columns: { genericName: true, mpn: true }
+    })
+
+    const inventoryContext = existingParts.length > 0
+      ? `Existing components in user inventory (for naming consistency): ${existingParts.map(p => `${p.genericName}${p.mpn ? ` (${p.mpn})` : ''}`).slice(0, 50).join(', ')}`
+      : 'User inventory is currently empty.';
+
     const { object: idResult } = await generateObject({
       model: visionModel as any,
       tools: {
         google_search: google.tools.googleSearch({}),
       },
       schema: z.object({
-        name: z.string().describe("Exact technical name/part number found on the component"),
+        genericName: z.string().describe("General component category name suitable for LLM understanding (e.g. Resistor, Capacitor, Microcontroller)"),
+        mpn: z.string().describe("Exact technical name/part number found on the component markings (e.g. NE555, ATMEGA328P, HC-SR04)"),
         category: z.string().describe(`Best fit category ${categoryEnum.toString()}`),
         value: z.string().describe("Numerical value (e.g. 10, 3.3, 100)"),
         unit: z.string().describe(`Unit ${unitEnum.toString()}`),
@@ -154,7 +164,16 @@ export async function processScan(sessionId: string) {
         {
           role: "user",
           content: [
-            { type: "text", text: "Identify the specific electronic component in this macro shot. Extract part number (if any), category, value, and unit. Provide an optimized 'mouserQuery' that would work best in a technical search engine. Respond in JSON." },
+            {
+              type: "text",
+              text: `Identify the specific electronic component in this macro shot.
+              Context: ${inventoryContext}
+              
+              INSTRUCTIONS:
+              1. Extract part number (MPN), category, value, and unit.
+              2. If the component looks like one from the 'Existing components' list, try to use the same genericName and MPN format to avoid duplication.
+              3. Provide an optimized 'mouserQuery' for technical search. Respond in JSON.`
+            },
             { type: "image", image: step1Base64, mimeType: "image/jpeg" }
           ]
         }
@@ -185,10 +204,10 @@ export async function processScan(sessionId: string) {
             {
               role: "user",
               content: [
-                { 
-                  type: "text", 
+                {
+                  type: "text",
                   text: `Task: Count instances of the identified electronic component.
-Identified Component: ${idResult.name}
+Identified Component: ${idResult.genericName} (${idResult.mpn || "Unknown MPN"})
 
 Your objective is to find and count how many INDIVIDUAL UNITS of this exact component are present in the image.
 RULES:
@@ -196,7 +215,7 @@ RULES:
 2. DO NOT count internal sub-components (like individual diodes, capacitors, or pins) that are mounted on the main board.
 3. If only one module is pictured, the count MUST be 1.
 4. Provide bounding boxes for the ENTIRE unit(s), not parts of them.
-5. Coordinate system: x, y are TOP-LEFT corner and w/h are dimensions (0-100% relative to image).` 
+5. Coordinate system: x, y are TOP-LEFT corner and w/h are dimensions (0-100% relative to image).`
                 },
                 { type: "image", image: step2Base64, mimeType: "image/jpeg" }
               ]
@@ -213,7 +232,7 @@ RULES:
     }
 
     let mouserResults = null
-    const searchKeyword = idResult.mouserQuery || idResult.name
+    const searchKeyword = idResult.mouserQuery || idResult.mpn
     if (searchKeyword) {
       mouserResults = await searchMouserProduct(searchKeyword, idResult.category)
     }
