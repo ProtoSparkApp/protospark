@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { projects, savedProjects, blogPosts, users, components } from "@/lib/db/schema";
-import { eq, and, ne, sql, desc, or } from "drizzle-orm";
+import { eq, and, ne, sql, desc, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function toggleProfilePrivacy(isPublic: boolean) {
@@ -139,23 +139,66 @@ export async function getBlogPosts() {
   return results;
 }
 
-export async function getUserLibrary() {
+export async function getUserLibrary(params?: { 
+  search?: string; 
+  difficulty?: string; 
+  page?: number; 
+  limit?: number;
+}) {
   const session = await auth();
-  if (!session?.user?.id) return { mine: [], bookmarked: [] };
+  if (!session?.user?.id) return { mine: [], bookmarked: [], totalMine: 0, totalBookmarked: 0 };
 
-  const myProjects = await db.select().from(projects).where(eq(projects.userId, session.user.id)).orderBy(desc(projects.createdAt));
+  const { search, difficulty, page = 1, limit = 6 } = params || {};
+  const offset = (page - 1) * limit;
+
+  // Base where for mine
+  let mineWhere = eq(projects.userId, session.user.id);
+  if (search) {
+    mineWhere = and(mineWhere, ilike(projects.title, `%${search}%`)) as any;
+  }
+  if (difficulty && difficulty !== "All") {
+    mineWhere = and(mineWhere, eq(projects.difficulty, difficulty)) as any;
+  }
+
+  const myProjects = await db.select().from(projects)
+    .where(mineWhere)
+    .orderBy(desc(projects.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count: totalMineCount }] = await db.select({ count: sql<number>`count(*)` })
+    .from(projects)
+    .where(mineWhere);
+
+  // For bookmarked
+  let savedWhere = eq(savedProjects.userId, session.user.id);
+  if (search) {
+    savedWhere = and(savedWhere, ilike(projects.title, `%${search}%`)) as any;
+  }
+  if (difficulty && difficulty !== "All") {
+    savedWhere = and(savedWhere, eq(projects.difficulty, difficulty)) as any;
+  }
 
   const bookmarked = await db.select({
     project: projects,
   })
     .from(savedProjects)
     .innerJoin(projects, eq(savedProjects.projectId, projects.id))
-    .where(eq(savedProjects.userId, session.user.id))
-    .orderBy(desc(savedProjects.createdAt));
+    .where(savedWhere)
+    .orderBy(desc(savedProjects.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count: totalBookmarkedCount }] = await db.select({ count: sql<number>`count(*)` })
+    .from(savedProjects)
+    .innerJoin(projects, eq(savedProjects.projectId, projects.id))
+    .where(savedWhere);
 
   return {
     mine: myProjects,
     bookmarked: bookmarked.map((b: any) => b.project),
+    totalMine: Number(totalMineCount),
+    totalBookmarked: Number(totalBookmarkedCount),
   };
 }
 

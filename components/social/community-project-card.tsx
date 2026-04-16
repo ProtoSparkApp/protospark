@@ -91,7 +91,6 @@ export function CommunityProjectCard({
       animate={{ opacity: 1, y: 0 }}
       className="group relative flex flex-col h-full bg-white border-4 border-black shadow-brutal transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
     >
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b-4 border-black">
         <div className="flex items-center gap-2">
           {authorImage ? (

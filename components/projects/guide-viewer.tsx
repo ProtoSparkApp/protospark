@@ -3,12 +3,12 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  ArrowLeft, 
-  Wrench, 
-  AlertTriangle, 
-  ChevronRight, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  Wrench,
+  AlertTriangle,
+  ChevronRight,
+  CheckCircle2,
   Circle,
   Save
 } from "lucide-react";
@@ -41,9 +41,9 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
     // Re-validate inventory based on the current user
     if (idea.requiredComponents?.length > 0) {
       checkInventoryForProject(idea.requiredComponents).then(res => {
-         if (res && "status" in res) {
-           setComponents(res.status);
-         }
+        if (res && "status" in res) {
+          setComponents(res.status);
+        }
       });
     }
   }, [idea.requiredComponents]);
@@ -146,7 +146,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                 Connection Diagram
               </h2>
               <div className="rounded-none border-4 border-black bg-neutral-100 p-1 shadow-brutal">
-                 <Mermaid chart={guide.mermaidiagram} />
+                <Mermaid chart={guide.mermaidiagram} />
               </div>
               <p className="mt-4 text-sm font-bold text-neutral-500 italic text-center">
                 * Diagram shows logical connections. Match pin labels to your physical components.
@@ -155,10 +155,10 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
 
             <section className="space-y-6">
               <h2 className="flex items-center gap-2 text-2xl font-black text-black">
-                 <div className="flex h-8 w-8 items-center justify-center rounded-none bg-black text-white">1</div>
-                 Step-by-Step Build Guide
+                <div className="flex h-8 w-8 items-center justify-center rounded-none bg-black text-white">1</div>
+                Step-by-Step Build Guide
               </h2>
-              
+
               <div className="space-y-8">
                 {guide.instructions.map((step, i) => (
                   <motion.div
@@ -204,10 +204,10 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                   </li>
                 ))}
               </ul>
-              
+
               {!savedId && (
-                <Button 
-                  onClick={handleSave} 
+                <Button
+                  onClick={handleSave}
                   className="mt-6 w-full border-2 border-black bg-green-400 text-black font-black hover:bg-green-500 shadow-brutal"
                   disabled={saving}
                 >
