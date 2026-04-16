@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { getBlogPosts } from "@/lib/actions/social";
-import { CommunityProjectCard } from "@/components/social/community-project-card";
-import { Newspaper, MessageSquare, Share2, Terminal, User, Calendar, Layers } from "lucide-react";
+import { BlogFeed } from "@/components/social/blog-feed";
+import { MessageSquare, Share2, Terminal, User, Calendar, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default async function BlogPage() {
@@ -29,72 +29,8 @@ export default async function BlogPage() {
       </div>
 
       <main className="container mx-auto px-4 mt-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div className="lg:col-span-8 space-y-16">
-          {posts.length === 0 ? (
-            <div className="border-4 border-dashed border-black/10 p-24 text-center bg-white">
-              <MessageSquare size={48} className="mx-auto mb-6 text-black/10" />
-              <p className="font-black uppercase text-2xl text-black/20 italic tracking-tighter">
-                The terminal is quiet. No transmissions detected.
-              </p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <article key={post.post.id} className="relative">
-                <div className="flex items-start gap-6">
-                  {/* Timeline decor */}
-                  <div className="hidden md:flex flex-col items-center gap-4">
-                    <div className="size-10 border-4 border-black bg-black flex items-center justify-center text-white shrink-0">
-                      <Terminal size={16} />
-                    </div>
-                    <div className="w-1 flex-1 bg-black/10 min-h-[100px]" />
-                  </div>
-
-                  <div className="flex-1 space-y-8 bg-white border-4 border-black p-8 shadow-brutal">
-                    <div className="flex items-center justify-between border-b-2 border-black border-dashed pb-6">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 border-2 border-black bg-neutral-100 flex items-center justify-center">
-                          {post.author.image ? <img src={post.author.image} className="size-full object-cover" /> : <User size={18} />}
-                        </div>
-                        <div>
-                          <h3 className="font-black uppercase text-sm leading-none">{post.author.name}</h3>
-                          <p className="text-[10px] font-black uppercase text-black/40 mt-1">{post.post.createdAt.toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="border-2 border-black rounded-none font-black uppercase text-[10px] px-2">LOG_{post.post.id.slice(0, 4)}</Badge>
-                    </div>
-
-                    <div>
-                      <h2 className="text-4xl font-black uppercase leading-none tracking-tighter mb-6">{post.post.title}</h2>
-                      <p className="text-lg font-medium leading-relaxed uppercase text-black/60">{post.post.content}</p>
-                    </div>
-
-                    <div className="pt-8 border-t-2 border-black/5">
-                      <div className="flex items-center gap-2 mb-4 font-black uppercase text-[10px] text-black/40 tracking-widest">
-                        <Layers size={14} /> Attached Blueprint
-                      </div>
-                      <div className="max-w-md">
-                        <CommunityProjectCard 
-                          project={post.project} 
-                          authorName={post.author.name || "MEMBER"}
-                          authorImage={post.author.image || undefined}
-                          showInventoryMatch={!!session?.user}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-6 border-t-2 border-black border-dashed pt-6">
-                       <button className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors">
-                         <MessageSquare size={14} /> Discuss
-                       </button>
-                       <button className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors">
-                         <Share2 size={14} /> Broadcast
-                       </button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))
-          )}
+        <div className="lg:col-span-8">
+          <BlogFeed posts={posts} sessionUser={session?.user} />
         </div>
 
         <aside className="lg:col-span-4 space-y-8">

@@ -13,9 +13,9 @@ import {
   Save
 } from "lucide-react";
 import Mermaid from "./mermaid-renderer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saveProject, toggleProjectVisibility } from "@/lib/actions/projects";
-import { createBlogPost } from "@/lib/actions/social";
+import { createBlogPost, checkInventoryForProject } from "@/lib/actions/social";
 import { toast } from "sonner";
 
 interface GuideProps {
@@ -35,6 +35,18 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   const [saving, setSaving] = useState(false);
   const [isPublic, setIsPublic] = useState(initialIsPublic || false);
   const [isPosting, setIsPosting] = useState(false);
+  const [components, setComponents] = useState(idea.requiredComponents || []);
+
+  useEffect(() => {
+    // Re-validate inventory based on the current user
+    if (idea.requiredComponents?.length > 0) {
+      checkInventoryForProject(idea.requiredComponents).then(res => {
+         if (res && "status" in res) {
+           setComponents(res.status);
+         }
+      });
+    }
+  }, [idea.requiredComponents]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -133,7 +145,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                 <Wrench className="h-6 w-6 text-blue-500" />
                 Connection Diagram
               </h2>
-              <div className="rounded-3xl border-4 border-black bg-neutral-100 p-1 shadow-brutal">
+              <div className="rounded-none border-4 border-black bg-neutral-100 p-1 shadow-brutal">
                  <Mermaid chart={guide.mermaidiagram} />
               </div>
               <p className="mt-4 text-sm font-bold text-neutral-500 italic text-center">
@@ -143,7 +155,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
 
             <section className="space-y-6">
               <h2 className="flex items-center gap-2 text-2xl font-black text-black">
-                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white">1</div>
+                 <div className="flex h-8 w-8 items-center justify-center rounded-none bg-black text-white">1</div>
                  Step-by-Step Build Guide
               </h2>
               
@@ -159,7 +171,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                     <div className="absolute left-0 top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white font-bold text-xs ring-4 ring-white">
                       {step.step}
                     </div>
-                    <div className="rounded-2xl border-2 border-black bg-white p-6 shadow-brutal transition-transform hover:-translate-y-1">
+                    <div className="rounded-none border-2 border-black bg-white p-6 shadow-brutal transition-transform hover:-translate-y-1">
                       <h3 className="text-xl font-black text-black">{step.title}</h3>
                       <p className="mt-2 text-neutral-600 font-medium leading-relaxed">{step.content}</p>
                     </div>
@@ -172,10 +184,10 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
 
         <aside className="space-y-8">
           <div className="sticky top-8 space-y-6">
-            <div className="rounded-2xl border-4 border-black bg-white p-6 shadow-brutal">
+            <div className="rounded-none border-4 border-black bg-white p-6 shadow-brutal">
               <h4 className="text-lg font-black text-black mb-4">Bill of Materials</h4>
               <ul className="space-y-3">
-                {idea.requiredComponents.map((comp: any, i: number) => (
+                {components.map((comp: any, i: number) => (
                   <li key={i} className="flex items-center gap-3 text-sm font-bold">
                     {comp.status === "In Stock" ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
@@ -193,16 +205,18 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                 ))}
               </ul>
               
-              <Button 
-                onClick={handleSave} 
-                className="mt-6 w-full border-2 border-black bg-green-400 text-black font-black hover:bg-green-500 shadow-brutal"
-                disabled={saving}
-              >
-                <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Project"}
-              </Button>
+              {!savedId && (
+                <Button 
+                  onClick={handleSave} 
+                  className="mt-6 w-full border-2 border-black bg-green-400 text-black font-black hover:bg-green-500 shadow-brutal"
+                  disabled={saving}
+                >
+                  <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Project"}
+                </Button>
+              )}
             </div>
 
-            <div className="rounded-2xl border-4 border-black bg-red-50 p-6 shadow-brutal">
+            <div className="rounded-none border-4 border-black bg-red-50 p-6 shadow-brutal">
               <h4 className="flex items-center gap-2 text-lg font-black text-red-600 mb-4">
                 <AlertTriangle className="h-5 w-5" />
                 Safety First

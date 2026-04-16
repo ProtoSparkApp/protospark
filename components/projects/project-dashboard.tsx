@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import ProjectGenerator from "./project-generator";
 import { CommunityProjectCard } from "@/components/social/community-project-card";
 import { getUserLibrary } from "@/lib/actions/social";
+import { ProjectFullGuide } from "@/components/projects/guide-viewer";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Folder, Bookmark, Plus, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ export function ProjectDashboard({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState<"generate" | "mine" | "saved">("mine");
   const [library, setLibrary] = useState<{ mine: any[]; bookmarked: any[] }>({ mine: [], bookmarked: [] });
   const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
   useEffect(() => {
     getUserLibrary().then(res => {
@@ -35,7 +37,7 @@ export function ProjectDashboard({ user }: { user: any }) {
             </p>
           </div>
 
-          <div className="flex bg-neutral-100 p-1 border-4 border-black border-dashed">
+          <div className="flex bg-white p-1.5 border-4 border-black shadow-[6px_6px_0px_0px_black] relative">
             {[
               { id: "mine", label: "My Blueprints", icon: Folder },
               { id: "saved", label: "Archives", icon: Bookmark },
@@ -43,16 +45,28 @@ export function ProjectDashboard({ user }: { user: any }) {
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => {
+                  setActiveTab(tab.id as any);
+                  setSelectedProject(null);
+                }}
                 className={cn(
-                  "flex items-center gap-2 px-6 py-3 font-black uppercase text-xs transition-all",
+                  "relative flex items-center gap-2 px-6 py-3 font-black uppercase text-xs tracking-tight transition-all duration-200",
                   activeTab === tab.id 
-                    ? "bg-black text-white shadow-[4px_4px_0px_#000]" 
-                    : "hover:bg-black/5"
+                    ? "text-white" 
+                    : "text-black/60 hover:text-black hover:bg-neutral-100"
                 )}
               >
-                <tab.icon size={16} />
-                {tab.label}
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="activeTabHighlight"
+                    className="absolute inset-0 bg-brand border-2 border-black"
+                    transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <tab.icon size={16} className={cn("transition-transform", activeTab === tab.id && "scale-110")} />
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
@@ -60,7 +74,32 @@ export function ProjectDashboard({ user }: { user: any }) {
 
         <div className="min-h-[400px]">
           <AnimatePresence mode="wait">
-            {activeTab === "generate" ? (
+            {selectedProject ? (
+              <motion.div
+                key="guide"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+              >
+                <ProjectFullGuide 
+                  idea={{
+                    title: selectedProject.title,
+                    description: selectedProject.description,
+                    difficulty: selectedProject.difficulty,
+                    requiredComponents: selectedProject.requiredComponents,
+                  }} 
+                  guide={{
+                    instructions: selectedProject.instructions,
+                    mermaidiagram: selectedProject.mermaidDiagram || "",
+                    safetyWarnings: [],
+                  }} 
+                  onBack={() => setSelectedProject(null)}
+                  savedId={selectedProject.id}
+                  isOwner={selectedProject.userId === user.id}
+                  initialIsPublic={selectedProject.isPublic}
+                />
+              </motion.div>
+            ) : activeTab === "generate" ? (
               <motion.div
                 key="generate"
                 initial={{ opacity: 0, y: 20 }}
@@ -93,6 +132,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                           project={p} 
                           authorName={user.name} 
                           authorImage={user.image}
+                          onInitialize={(project) => setSelectedProject(project)}
                         />
                       ))
                     )}
@@ -113,6 +153,8 @@ export function ProjectDashboard({ user }: { user: any }) {
                         <CommunityProjectCard 
                           key={p.id} 
                           project={p} 
+                          isBookmarked={true}
+                          onInitialize={(project) => setSelectedProject(project)}
                         />
                       ))
                     )}

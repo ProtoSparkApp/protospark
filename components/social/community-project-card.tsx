@@ -12,7 +12,8 @@ import {
   User,
   Eye,
   Layers,
-  Sparkles
+  Sparkles,
+  Bookmark
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { bookmarkProject, cloneProject, checkInventoryForProject } from "@/lib/actions/social";
@@ -26,6 +27,7 @@ interface CommunityProjectCardProps {
   authorImage?: string;
   isBookmarked?: boolean;
   showInventoryMatch?: boolean;
+  onInitialize?: (project: any) => void;
 }
 
 export function CommunityProjectCard({
@@ -33,11 +35,16 @@ export function CommunityProjectCard({
   authorName,
   authorImage,
   isBookmarked: initialIsBookmarked = false,
-  showInventoryMatch = true
+  showInventoryMatch = true,
+  onInitialize
 }: CommunityProjectCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [inventoryStatus, setInventoryStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsBookmarked(initialIsBookmarked);
+  }, [initialIsBookmarked]);
 
   useEffect(() => {
     if (showInventoryMatch) {
@@ -54,10 +61,10 @@ export function CommunityProjectCard({
     if ("success" in res) {
       if (res.success === "removed") {
         setIsBookmarked(false);
-        toast.success("Removed from library");
+        toast.success("Removed from archives");
       } else {
         setIsBookmarked(true);
-        toast.success("Saved to library");
+        toast.success("Saved to archives");
       }
     } else {
       toast.error(res.error);
@@ -99,22 +106,21 @@ export function CommunityProjectCard({
           </span>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleBookmark}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleBookmark();
+            }}
             className={cn(
-              "p-1.5 border-2 border-black transition-colors",
-              isBookmarked ? "bg-red-400 text-black" : "hover:bg-neutral-100"
+              "h-8 w-8 rounded-none border-2 border-black transition-all",
+              isBookmarked ? "bg-brand text-white hover:bg-brand/90" : "bg-white text-black hover:bg-neutral-100"
             )}
           >
-            <Heart size={14} fill={isBookmarked ? "currentColor" : "none"} />
-          </button>
-          <button
-            onClick={handleClone}
-            disabled={isLoading}
-            className="p-1.5 border-2 border-black hover:bg-yellow-400 transition-colors"
-          >
-            <Copy size={14} />
-          </button>
+            <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
+          </Button>
         </div>
       </div>
 
@@ -149,19 +155,24 @@ export function CommunityProjectCard({
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1">
-              {inventoryStatus?.status.slice(0, 3).map((comp: any, i: number) => (
+            <div className="flex flex-wrap gap-2">
+              {(inventoryStatus?.status || project.requiredComponents || []).slice(0, 4).map((comp: any, i: number) => (
                 <span
                   key={i}
-                  className={`flex items-center gap-1 border-2 border-black px-1.5 py-0.5 text-[9px] font-black uppercase ${comp.status === "In Stock" ? "bg-green-400" : "bg-red-400"
+                  className={`flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[10px] font-bold ${comp.status === "In Stock" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                     }`}
                 >
-                  {comp.name}
+                  {comp.status === "In Stock" ? (
+                    <CheckCircle2 size={12} className="shrink-0" />
+                  ) : (
+                    <ShoppingCart size={12} className="shrink-0" />
+                  )}
+                  <span className="truncate">{comp.name}</span>
                 </span>
               ))}
-              {totalParts > 3 && (
-                <span className="flex items-center gap-1 border-2 border-black bg-neutral-100 px-1.5 py-0.5 text-[9px] font-black uppercase">
-                  +{totalParts - 3}
+              {totalParts > 4 && (
+                <span className="flex items-center gap-1 rounded-md border-2 border-black bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-600">
+                  +{totalParts - 4} more
                 </span>
               )}
             </div>
@@ -170,14 +181,24 @@ export function CommunityProjectCard({
       </div>
 
       <div className="p-4 pt-0">
-        <Link href={`/projects/${project.id}`} className="block">
+        {onInitialize ? (
           <Button
+            onClick={() => onInitialize(project)}
             variant="neo"
             className="w-full text-xs py-5 rounded-none"
           >
             Initialize Guide <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        </Link>
+        ) : (
+          <Link href={`/projects/${project.id}`} className="block">
+            <Button
+              variant="neo"
+              className="w-full text-xs py-5 rounded-none"
+            >
+              Initialize Guide <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        )}
       </div>
     </motion.div>
   );

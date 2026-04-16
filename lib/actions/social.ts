@@ -27,6 +27,9 @@ export async function getExploreProjects() {
     project: projects,
     userName: users.name,
     userImage: users.image,
+    isBookmarked: userId 
+      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
+      : sql<boolean>`false`
   })
     .from(projects)
     .innerJoin(users, eq(projects.userId, users.id))
@@ -116,10 +119,16 @@ export async function createBlogPost(data: { projectId: string; title: string; c
 }
 
 export async function getBlogPosts() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
   const results = await db.select({
     post: blogPosts,
     project: projects,
     author: users,
+    isBookmarked: userId 
+      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
+      : sql<boolean>`false`
   })
     .from(blogPosts)
     .innerJoin(projects, eq(blogPosts.projectId, projects.id))
@@ -160,9 +169,39 @@ export async function checkInventoryForProject(requiredComponents: any[]) {
 
   const status = requiredComponents.map(req => {
     const found = userInventory.find((inv: any) => {
-      const nameMatch = normalize(inv.genericName) === normalize(req.name);
-      const valMatch = normalize(inv.value) === normalize(req.value);
-      return nameMatch && valMatch;
+      const invName = normalize(inv.genericName);
+      const invValue = normalize(inv.value);
+      const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
+      const invCategory = normalize(inv.category || "");
+      const invMpn = normalize(inv.mpn || "");
+      
+      const reqName = normalize(req.name);
+      const reqValue = normalize(req.value);
+
+      // 1. Check for name/category/mpn match
+      const baseNameMatch = 
+        invName === reqName || 
+        reqName.includes(invName) || 
+        invName.includes(reqName) ||
+        invCategory.includes(reqName) ||
+        reqName.includes(invCategory) ||
+        invMpn.includes(reqName) ||
+        reqName.includes(invMpn);
+
+      // 2. Check for value match
+      const baseValueMatch = 
+        reqValue === invValue || 
+        reqValue === (invValue + invUnit) || 
+        (invValue !== "" && reqValue.includes(invValue)) ||
+        (reqValue !== "" && invValue.includes(reqValue));
+
+      // 3. Fallback: Cross-match (sometimes AI swaps name/value or combines them)
+      const fullInv = invName + invValue + invUnit + invCategory + invMpn;
+      const fullReq = reqName + reqValue;
+      
+      const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
+
+      return (baseNameMatch && baseValueMatch) || crossMatch;
     });
 
     const hasEnough = found ? found.quantity >= req.quantity : false;
@@ -207,10 +246,21 @@ export async function searchUsers(query: string) {
 }
 
 export async function getPublicProfile(userId: string) {
+  const session = await auth();
+  const currentUserId = session?.user?.id;
+
   const [user] = await db.select().from(users).where(and(eq(users.id, userId), eq(users.isPublicProfile, true)));
   if (!user) return null;
 
-  const publicProjects = await db.select().from(projects).where(and(eq(projects.userId, userId), eq(projects.isPublic, true))).orderBy(desc(projects.createdAt));
+  const publicProjects = await db.select({
+    project: projects,
+    isBookmarked: currentUserId 
+      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${currentUserId})`
+      : sql<boolean>`false`
+  })
+    .from(projects)
+    .where(and(eq(projects.userId, userId), eq(projects.isPublic, true)))
+    .orderBy(desc(projects.createdAt));
 
   return {
     user,

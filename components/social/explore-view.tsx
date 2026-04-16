@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, User, ArrowRight, Shield, Layout, X } from "lucide-react";
 import { CommunityProjectCard } from "./community-project-card";
+import { ProjectFullGuide } from "@/components/projects/guide-viewer";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export function ExploreView() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedGuideProject, setSelectedGuideProject] = useState<any | null>(null);
 
   useEffect(() => {
     getExploreFeed().then(setFeed);
@@ -132,19 +134,51 @@ export function ExploreView() {
                   <div className="h-8 w-1.5 bg-black" />
                   <h3 className="text-2xl font-black uppercase tracking-tighter italic">Public Schematics</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {loading ? (
-                    [1,2,3].map(i => <div key={i} className="aspect-square border-4 border-black animate-pulse bg-neutral-100" />)
-                  ) : profileData?.projects.map((p: any) => (
-                    <CommunityProjectCard 
-                      key={p.id} 
-                      project={p} 
-                      authorName={selectedUser.name} 
-                      authorImage={selectedUser.image}
-                      showInventoryMatch={true}
-                    />
-                  ))}
-                </div>
+
+                <AnimatePresence mode="wait">
+                  {selectedGuideProject ? (
+                    <motion.div
+                      key="guide"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                    >
+                      <ProjectFullGuide
+                        idea={{
+                          title: selectedGuideProject.title,
+                          description: selectedGuideProject.description,
+                          difficulty: selectedGuideProject.difficulty,
+                          requiredComponents: selectedGuideProject.requiredComponents,
+                        }}
+                        guide={{
+                          instructions: selectedGuideProject.instructions,
+                          mermaidiagram: selectedGuideProject.mermaidDiagram || "",
+                          safetyWarnings: [],
+                        }}
+                        onBack={() => setSelectedGuideProject(null)}
+                        savedId={selectedGuideProject.id}
+                        isOwner={false} // Exploring usually means you're not the owner
+                        initialIsPublic={selectedGuideProject.isPublic}
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {loading ? (
+                        [1, 2, 3].map(i => <div key={i} className="aspect-square border-4 border-black animate-pulse bg-neutral-100" />)
+                      ) : profileData?.projects.map((p: any) => (
+                        <CommunityProjectCard
+                          key={p.project.id}
+                          project={p.project}
+                          isBookmarked={p.isBookmarked}
+                          authorName={selectedUser.name}
+                          authorImage={selectedUser.image}
+                          showInventoryMatch={true}
+                          onInitialize={(project) => setSelectedGuideProject(project)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           ) : (

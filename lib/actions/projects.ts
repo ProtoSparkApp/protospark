@@ -23,7 +23,7 @@ export type ProjectIdea = {
   partsCountMissing: number;
 };
 
-export type GenerateIdeasResponse = 
+export type GenerateIdeasResponse =
   | { success: true; ideas: ProjectIdea[]; canBuildAnything: boolean; emptyStockMessage?: string; error?: never }
   | { error: string; success?: never; ideas?: never; canBuildAnything?: never; emptyStockMessage?: never };
 
@@ -51,7 +51,7 @@ export async function generateProjectIdeas(limit: number = 5): Promise<GenerateI
 
   try {
     const { object } = await generateObject({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-2.5-flash-lite"),
       schema: z.object({
         ideas: z.array(z.object({
           title: z.string(),
@@ -99,7 +99,7 @@ export type ProjectGuide = {
   safetyWarnings: string[];
 };
 
-export type GuideActionResponse = 
+export type GuideActionResponse =
   | { success: true; data: ProjectGuide; error?: never }
   | { error: string; success?: never; data?: never };
 
@@ -109,7 +109,7 @@ export async function getProjectFullGuide(projectSummary: any): Promise<GuideAct
 
   try {
     const { object } = await generateObject({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-2.5-flash"),
       schema: z.object({
         instructions: z.array(z.object({
           step: z.number(),
@@ -179,7 +179,7 @@ export async function toggleProjectVisibility(projectId: string, isPublic: boole
   await db.update(projects)
     .set({ isPublic: isPublic })
     .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)));
-  
+
   revalidatePath("/projects");
   revalidatePath("/library");
   return { success: true };
