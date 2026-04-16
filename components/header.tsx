@@ -22,7 +22,8 @@ export async function Header() {
         <nav className="hidden md:flex items-center gap-8 font-heading font-bold uppercase text-sm">
           <Link href="/inventory" className="hover:text-brand transition-colors">Inventory</Link>
           <Link href="/projects" className="hover:text-brand transition-colors">Projects</Link>
-          <Link href="/store" className="hover:text-brand transition-colors">Mouser Store</Link>
+          <Link href="/explore" className="hover:text-brand transition-colors">Explore</Link>
+          <Link href="/blog" className="hover:text-brand transition-colors">Blog</Link>
         </nav>
 
         <div className="flex items-center gap-4">

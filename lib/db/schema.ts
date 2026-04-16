@@ -8,6 +8,7 @@ import {
   jsonb,
   boolean,
   pgEnum,
+  unique,
 } from "drizzle-orm/pg-core"
 import type { AdapterAccountType } from "next-auth/adapters"
 import { categoryEnum, unitEnum } from "../validators"
@@ -28,6 +29,8 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   password: text("password"),
   image: text("image"),
+  isPublicProfile: boolean("isPublicProfile").default(true).notNull(),
+  bio: text("bio"),
 })
 
 export const accounts = pgTable(
@@ -108,8 +111,29 @@ export const projects = pgTable("project", {
   requiredComponents: jsonb("requiredComponents").notNull(),
   difficulty: text("difficulty").notNull(),
   isPublic: boolean("isPublic").default(false).notNull(),
+  clonedFromId: uuid("clonedFromId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+export const savedProjects = pgTable("savedProject", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (sp) => ({
+  unq: unique().on(sp.userId, sp.projectId)
+}));
+
+export const blogPosts = pgTable("blogPost", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  images: jsonb("images").default([]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const scanSessions = pgTable("scanSession", {
   id: text("id").primaryKey(),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),

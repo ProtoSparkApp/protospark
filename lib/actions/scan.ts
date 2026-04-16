@@ -137,12 +137,12 @@ export async function processScan(sessionId: string) {
     }
 
     const existingParts = await db.query.components.findMany({
-      where: (comp, { eq }) => eq(comp.userId, session.user.id),
+      where: (comp: any, { eq }: any) => eq(comp.userId, session.user!.id),
       columns: { genericName: true, mpn: true }
     })
 
     const inventoryContext = existingParts.length > 0
-      ? `Existing components in user inventory (for naming consistency): ${existingParts.map(p => `${p.genericName}${p.mpn ? ` (${p.mpn})` : ''}`).slice(0, 50).join(', ')}`
+      ? `Existing components in user inventory (for naming consistency): ${existingParts.map((p: any) => `${p.genericName}${p.mpn ? ` (${p.mpn})` : ''}`).slice(0, 50).join(', ')}`
       : 'User inventory is currently empty.';
 
     const { object: idResult } = await generateObject({

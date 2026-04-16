@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import Mermaid from "./mermaid-renderer";
 import { useState } from "react";
-import { saveProject } from "@/lib/actions/projects";
+import { saveProject, toggleProjectVisibility } from "@/lib/actions/projects";
+import { createBlogPost } from "@/lib/actions/social";
 import { toast } from "sonner";
 
 interface GuideProps {
@@ -25,10 +26,15 @@ interface GuideProps {
     safetyWarnings: string[];
   };
   onBack: () => void;
+  savedId?: string;
+  isOwner?: boolean;
+  initialIsPublic?: boolean;
 }
 
-export function ProjectFullGuide({ idea, guide, onBack }: GuideProps) {
+export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initialIsPublic }: GuideProps) {
   const [saving, setSaving] = useState(false);
+  const [isPublic, setIsPublic] = useState(initialIsPublic || false);
+  const [isPosting, setIsPosting] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -50,15 +56,66 @@ export function ProjectFullGuide({ idea, guide, onBack }: GuideProps) {
     }
   };
 
+  const handleTogglePublic = async () => {
+    if (!savedId) return;
+    const newStatus = !isPublic;
+    setIsPublic(newStatus);
+    const res = await toggleProjectVisibility(savedId, newStatus);
+    if (res.success) {
+      toast.success(newStatus ? "Project is now Public" : "Project is now Private");
+    }
+  };
+
+  const handlePostToBlog = async () => {
+    if (!savedId) return;
+    setIsPosting(true);
+    const res = await createBlogPost({
+      projectId: savedId,
+      title: `Finished: ${idea.title}`,
+      content: `I just completed this project! Here is the detailed guide and connection diagram I used. It's working perfectly.`,
+    });
+    setIsPosting(false);
+    if ("success" in res) {
+      toast.success("Build log shared to community blog!");
+    } else {
+      toast.error(res.error);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Button
-        variant="ghost"
-        onClick={onBack}
-        className="mb-8 font-bold border-2 border-transparent hover:border-black"
-      >
-        <ArrowLeft className="mr-2 h-5 w-5" /> Back to Ideas
-      </Button>
+      <div className="flex items-center justify-between mb-8">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="font-bold border-2 border-transparent hover:border-black"
+        >
+          <ArrowLeft className="mr-2 h-5 w-5" /> Back
+        </Button>
+
+        {isOwner && savedId && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTogglePublic}
+              className={`font-black uppercase italic ${isPublic ? "bg-green-400 text-black border-black" : "border-black"}`}
+            >
+              {isPublic ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Circle className="mr-2 h-4 w-4" />}
+              {isPublic ? "Public" : "Make Public"}
+            </Button>
+            <Button
+              variant="neo"
+              size="sm"
+              onClick={handlePostToBlog}
+              disabled={isPosting}
+              className="font-black border-2 border-black"
+            >
+              {isPosting ? "Posting..." : "Share to Blog"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="grid gap-12 md:grid-cols-[1fr_350px]">
         <div>

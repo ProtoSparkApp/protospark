@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { generateProjectIdeas, getProjectFullGuide } from "@/lib/actions/projects";
+import { generateProjectIdeas, getProjectFullGuide, type ProjectIdea, type ProjectGuide } from "@/lib/actions/projects";
 import { ProjectCard } from "./project-card";
 import { ProjectFullGuide } from "./guide-viewer";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,9 @@ import { toast } from "sonner";
 export default function ProjectGenerator() {
   const [loading, setLoading] = useState(false);
   const [guideLoading, setGuideLoading] = useState(false);
-  const [ideas, setIdeas] = useState<any[]>([]);
-  const [selectedIdea, setSelectedIdea] = useState<any>(null);
-  const [fullGuide, setFullGuide] = useState<any>(null);
+  const [ideas, setIdeas] = useState<ProjectIdea[]>([]);
+  const [selectedIdea, setSelectedIdea] = useState<ProjectIdea | null>(null);
+  const [fullGuide, setFullGuide] = useState<ProjectGuide | null>(null);
   const [resultsMeta, setResultsMeta] = useState<{ canBuildAnything: boolean; emptyStockMessage?: string } | null>(null);
 
   const fetchIdeas = async (limit = 5) => {
@@ -27,10 +27,10 @@ export default function ProjectGenerator() {
       const res = await generateProjectIdeas(limit);
       if (res.error) {
         toast.error(res.error);
-      } else {
+      } else if (res.success) {
         setIdeas(res.ideas || []);
         setResultsMeta({ 
-            canBuildAnything: res.canBuildAnything ?? true, 
+            canBuildAnything: res.canBuildAnything, 
             emptyStockMessage: res.emptyStockMessage 
         });
       }
