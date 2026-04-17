@@ -10,10 +10,8 @@ export default async function LibraryPage() {
 
   const library = await getUserLibrary();
   if (!library || Array.isArray(library)) {
-    // Should not happen with getUserLibrary returning {mine, bookmarked}
-    // but just in case
   }
-  
+
   const mine = "mine" in library ? library.mine : [];
   const bookmarked = "bookmarked" in library ? library.bookmarked : [];
 
@@ -38,7 +36,6 @@ export default async function LibraryPage() {
       </div>
 
       <main className="container mx-auto px-4 mt-12">
-        {/* Section: My Projects */}
         <section className="mb-16">
           <div className="flex items-center gap-3 mb-8">
             <div className="h-10 w-2 bg-black" />
@@ -57,9 +54,9 @@ export default async function LibraryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {mine.map((project) => (
-                <CommunityProjectCard 
-                  key={project.id} 
-                  project={project} 
+                <CommunityProjectCard
+                  key={project.id}
+                  project={project}
                   authorName={session.user?.name || "Me"}
                   authorImage={session.user?.image || undefined}
                   showInventoryMatch={true}
@@ -69,7 +66,6 @@ export default async function LibraryPage() {
           )}
         </section>
 
-        {/* Section: Saved from Community */}
         <section>
           <div className="flex items-center gap-3 mb-8">
             <div className="h-10 w-2 bg-brand" />
@@ -88,9 +84,9 @@ export default async function LibraryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {bookmarked.map((project) => (
-                <CommunityProjectCard 
-                  key={project.id} 
-                  project={project} 
+                <CommunityProjectCard
+                  key={project.id}
+                  project={project}
                   isBookmarked={true}
                   showInventoryMatch={true}
                 />

@@ -22,12 +22,11 @@ export async function getExploreProjects() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  // Get public projects from users with public profiles
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
-    isBookmarked: userId 
+    isBookmarked: userId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
       : sql<boolean>`false`
   })
@@ -126,7 +125,7 @@ export async function getBlogPosts() {
     post: blogPosts,
     project: projects,
     author: users,
-    isBookmarked: userId 
+    isBookmarked: userId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
       : sql<boolean>`false`
   })
@@ -139,10 +138,10 @@ export async function getBlogPosts() {
   return results;
 }
 
-export async function getUserLibrary(params?: { 
-  search?: string; 
-  difficulty?: string; 
-  page?: number; 
+export async function getUserLibrary(params?: {
+  search?: string;
+  difficulty?: string;
+  page?: number;
   limit?: number;
 }) {
   const session = await auth();
@@ -151,7 +150,6 @@ export async function getUserLibrary(params?: {
   const { search, difficulty, page = 1, limit = 6 } = params || {};
   const offset = (page - 1) * limit;
 
-  // Base where for mine
   let mineWhere = eq(projects.userId, session.user.id);
   if (search) {
     mineWhere = and(mineWhere, ilike(projects.title, `%${search}%`)) as any;
@@ -170,7 +168,6 @@ export async function getUserLibrary(params?: {
     .from(projects)
     .where(mineWhere);
 
-  // For bookmarked
   let savedWhere = eq(savedProjects.userId, session.user.id);
   if (search) {
     savedWhere = and(savedWhere, ilike(projects.title, `%${search}%`)) as any;
@@ -217,31 +214,28 @@ export async function checkInventoryForProject(requiredComponents: any[]) {
       const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
       const invCategory = normalize(inv.category || "");
       const invMpn = normalize(inv.mpn || "");
-      
+
       const reqName = normalize(req.name);
       const reqValue = normalize(req.value);
 
-      // 1. Check for name/category/mpn match
-      const baseNameMatch = 
-        invName === reqName || 
-        reqName.includes(invName) || 
+      const baseNameMatch =
+        invName === reqName ||
+        reqName.includes(invName) ||
         invName.includes(reqName) ||
         invCategory.includes(reqName) ||
         reqName.includes(invCategory) ||
         invMpn.includes(reqName) ||
         reqName.includes(invMpn);
 
-      // 2. Check for value match
-      const baseValueMatch = 
-        reqValue === invValue || 
-        reqValue === (invValue + invUnit) || 
+      const baseValueMatch =
+        reqValue === invValue ||
+        reqValue === (invValue + invUnit) ||
         (invValue !== "" && reqValue.includes(invValue)) ||
         (reqValue !== "" && invValue.includes(reqValue));
 
-      // 3. Fallback: Cross-match (sometimes AI swaps name/value or combines them)
       const fullInv = invName + invValue + invUnit + invCategory + invMpn;
       const fullReq = reqName + reqValue;
-      
+
       const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
 
       return (baseNameMatch && baseValueMatch) || crossMatch;
@@ -297,7 +291,7 @@ export async function getPublicProfile(userId: string) {
 
   const publicProjects = await db.select({
     project: projects,
-    isBookmarked: currentUserId 
+    isBookmarked: currentUserId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${currentUserId})`
       : sql<boolean>`false`
   })
@@ -312,7 +306,6 @@ export async function getPublicProfile(userId: string) {
 }
 
 export async function getExploreFeed() {
-  // Get recent public profiles with at least one public project
   const recentProfiles = await db.select({
     user: users,
     projectCount: sql<number>`count(${projects.id})`,

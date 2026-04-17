@@ -60,8 +60,8 @@ export function ExploreView() {
               <Search size={16} />
               <span className="font-mono text-[10px] font-black uppercase text-black/40">Search Engineers</span>
             </div>
-            <Input 
-              placeholder="NAME / USER ID..." 
+            <Input
+              placeholder="NAME / USER ID..."
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               className="h-12 text-sm uppercase font-black"
@@ -72,8 +72,8 @@ export function ExploreView() {
                   <p className="text-[10px] font-black uppercase p-2 text-black/40">No records found</p>
                 ) : (
                   searchResults.map(u => (
-                    <button 
-                      key={u.id} 
+                    <button
+                      key={u.id}
                       onClick={() => viewProfile(u)}
                       className="w-full flex items-center gap-3 p-2 hover:bg-neutral-50 transition-colors text-left"
                     >
@@ -99,7 +99,7 @@ export function ExploreView() {
               className="space-y-12"
             >
               <div className="flex flex-col md:flex-row items-center gap-8 bg-neutral-50 border-4 border-black p-8 relative">
-                <button 
+                <button
                   onClick={() => setSelectedUser(null)}
                   className="absolute top-4 right-4 p-2 border-2 border-black hover:bg-red-400 transition-colors"
                 >
@@ -113,7 +113,7 @@ export function ExploreView() {
                     <div className="size-full flex items-center justify-center"><User size={48} /></div>
                   )}
                 </div>
-                
+
                 <div className="text-center md:text-left space-y-4">
                   <div>
                     <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{selectedUser.name}</h2>
@@ -157,7 +157,7 @@ export function ExploreView() {
                         }}
                         onBack={() => setSelectedGuideProject(null)}
                         savedId={selectedGuideProject.id}
-                        isOwner={false} // Exploring usually means you're not the owner
+                        isOwner={false}
                         initialIsPublic={selectedGuideProject.isPublic}
                       />
                     </motion.div>
@@ -193,10 +193,10 @@ export function ExploreView() {
                   <div className="h-8 w-1.5 bg-brand" />
                   <h3 className="text-2xl font-black uppercase tracking-tighter italic">Recent Transmissions</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {feed.map((item: any) => (
-                    <button 
+                    <button
                       key={item.user.id}
                       onClick={() => viewProfile(item.user)}
                       className="border-4 border-black bg-white p-6 shadow-brutal hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] transition-all text-left group"

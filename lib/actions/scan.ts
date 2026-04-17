@@ -17,7 +17,7 @@ import { categoryEnum, unitEnum } from "../validators"
 const PROVIDER: "ollama" | "gemini" = "gemini";
 
 const visionModel = PROVIDER === "gemini"
-  ? google("gemini-2.5-flash")
+  ? google("gemini-2.5-flash-lite")
   : ollama("llava:v1.6");
 
 export async function createScanSession() {

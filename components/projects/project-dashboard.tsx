@@ -24,7 +24,6 @@ export function ProjectDashboard({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
-  // Search and Filter State
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 400);
   const [difficulty, setDifficulty] = useState("All");
@@ -44,7 +43,6 @@ export function ProjectDashboard({ user }: { user: any }) {
     });
   }, [activeTab, debouncedSearch, difficulty, page]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [activeTab, debouncedSearch, difficulty]);

@@ -38,7 +38,6 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   const [components, setComponents] = useState(idea.requiredComponents || []);
 
   useEffect(() => {
-    // Re-validate inventory based on the current user
     if (idea.requiredComponents?.length > 0) {
       checkInventoryForProject(idea.requiredComponents).then(res => {
         if (res && "status" in res) {

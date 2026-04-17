@@ -14,12 +14,10 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
 
   if (!project) return notFound();
 
-  // Privacy check
   if (!project.isPublic && project.userId !== session?.user?.id) {
     redirect("/explore");
   }
 
-  // Map to the format guide-viewer expects
   const idea = {
     title: project.title,
     description: project.description,
@@ -30,15 +28,15 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
   const guide = {
     instructions: project.instructions as any[],
     mermaidiagram: project.mermaidDiagram || "",
-    safetyWarnings: [], // We don't store warnings yet, but could be added to schema
+    safetyWarnings: [],
   };
 
   return (
     <>
-      <ProjectFullGuide 
-        idea={idea} 
-        guide={guide} 
-        onBack={() => redirect("/library")} 
+      <ProjectFullGuide
+        idea={idea}
+        guide={guide}
+        onBack={() => redirect("/library")}
         savedId={project.id}
         isOwner={project.userId === session?.user?.id}
         initialIsPublic={project.isPublic}

@@ -39,13 +39,13 @@ export default async function ProfilePage() {
                 <Settings size={16} />
               </div>
             </div>
-            
+
             <div className="text-center md:text-left">
               <h1 className="text-5xl font-black uppercase italic tracking-tighter leading-none mb-2">
                 {user.name}
               </h1>
               <p className="font-mono text-sm text-black/40 uppercase font-bold mb-4">{user.email}</p>
-              
+
               <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                 <div className={`flex items-center gap-2 px-3 py-1 border-2 border-black font-black uppercase text-[10px] ${user.isPublicProfile ? "bg-green-400" : "bg-neutral-800 text-white"}`}>
                   {user.isPublicProfile ? <Shield size={12} /> : <ShieldOff size={12} />}
@@ -62,23 +62,22 @@ export default async function ProfilePage() {
       </div>
 
       <main className="container mx-auto px-4 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Settings Sidebar */}
         <div className="lg:col-span-1 space-y-8">
           <section className="border-4 border-black bg-white p-6 shadow-brutal">
             <h2 className="text-xl font-black uppercase italic tracking-tight mb-6 flex items-center gap-2">
               <Settings size={20} /> Interaction Settings
             </h2>
-            
+
             <form action={updateProfile} className="space-y-6">
               <div className="flex items-center justify-between p-4 border-2 border-black bg-neutral-50">
                 <div>
                   <label className="font-heading font-black uppercase text-sm block">Public Visibility</label>
                   <p className="text-[10px] text-black/50 leading-tight uppercase font-bold">Allows others to see your projects and library</p>
                 </div>
-                <input 
-                  type="checkbox" 
-                  name="isPublic" 
-                  defaultChecked={user.isPublicProfile} 
+                <input
+                  type="checkbox"
+                  name="isPublic"
+                  defaultChecked={user.isPublicProfile}
                   className="size-6 border-4 border-black rounded-none appearance-none checked:bg-brand cursor-pointer"
                 />
               </div>
@@ -99,15 +98,14 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        {/* Content Area */}
         <div className="lg:col-span-2">
-           <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-8">
             <div className="h-10 w-2 bg-black" />
             <h2 className="text-3xl font-black uppercase italic tracking-tight">
               My Activity Feed
             </h2>
           </div>
-          
+
           <div className="space-y-6">
             {myProjects.map(p => (
               <div key={p.id} className="border-4 border-black bg-white p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
