@@ -50,6 +50,8 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
+  --radius: 0px;
+
   --shadow-brutal: 4px 4px 0px #000000;
   --shadow-brutal-lg: 8px 8px 0px #000000;
 
@@ -141,5 +143,5 @@
 }
 
 .brutal-btn {
-  @apply bg-brand text-white font-bold border-2 border-black rounded-none px-6 py-2 shadow-brutal active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all;
+  @apply bg-brand text-white font-bold border-2 border-brand rounded-none px-6 py-2 shadow-[4px_4px_0px_#000000] active:scale-95 transition-all;
 }

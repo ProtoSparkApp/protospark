@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { generateProjectIdeas, getProjectFullGuide } from "@/lib/actions/projects";
+import { generateProjectIdeas, getProjectFullGuide, type ProjectIdea, type ProjectGuide } from "@/lib/actions/projects";
 import { ProjectCard } from "./project-card";
 import { ProjectFullGuide } from "./guide-viewer";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,9 @@ import { toast } from "sonner";
 export default function ProjectGenerator() {
   const [loading, setLoading] = useState(false);
   const [guideLoading, setGuideLoading] = useState(false);
-  const [ideas, setIdeas] = useState<any[]>([]);
-  const [selectedIdea, setSelectedIdea] = useState<any>(null);
-  const [fullGuide, setFullGuide] = useState<any>(null);
+  const [ideas, setIdeas] = useState<ProjectIdea[]>([]);
+  const [selectedIdea, setSelectedIdea] = useState<ProjectIdea | null>(null);
+  const [fullGuide, setFullGuide] = useState<ProjectGuide | null>(null);
   const [resultsMeta, setResultsMeta] = useState<{ canBuildAnything: boolean; emptyStockMessage?: string } | null>(null);
 
   const fetchIdeas = async (limit = 5) => {
@@ -27,10 +27,10 @@ export default function ProjectGenerator() {
       const res = await generateProjectIdeas(limit);
       if (res.error) {
         toast.error(res.error);
-      } else {
+      } else if (res.success) {
         setIdeas(res.ideas || []);
         setResultsMeta({ 
-            canBuildAnything: res.canBuildAnything ?? true, 
+            canBuildAnything: res.canBuildAnything, 
             emptyStockMessage: res.emptyStockMessage 
         });
       }
@@ -77,14 +77,15 @@ export default function ProjectGenerator() {
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="inline-flex items-center gap-2 rounded-full border-2 border-black bg-purple-100 px-4 py-2 text-sm font-black text-purple-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          className="inline-flex items-center gap-2 border-2 border-black bg-brand px-4 py-2 text-xs font-black uppercase text-white shadow-[4px_4px_0px_0px_black]"
         >
           <Sparkles className="h-4 w-4" />
           AI Project Lab
         </motion.div>
         
-        <h1 className="mt-6 text-6xl font-black tracking-tight text-black sm:text-7xl">
-          What will you <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent underline decoration-black underline-offset-8">build</span> today?
+        <h1 className="mt-6 text-6xl font-black tracking-tighter text-black sm:text-7xl uppercase leading-none">
+          What will you <br />
+          <span className="text-brand">build</span> today?
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-xl font-medium text-neutral-600 leading-relaxed">
           We analyzed your inventory. Here are projects you can build right now, or with a few extra parts.
@@ -92,10 +93,11 @@ export default function ProjectGenerator() {
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <Button
-            size="lg"
+            variant="neo"
+            size="xl"
             onClick={() => fetchIdeas(5)}
             disabled={loading}
-            className="h-16 border-4 border-black bg-black px-10 text-xl font-black text-white shadow-brutal transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+            className="h-20 px-12 text-2xl rounded-none w-full md:w-auto uppercase"
           >
             {loading ? (
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -115,24 +117,24 @@ export default function ProjectGenerator() {
       )}
 
       {guideLoading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
-            <div className="rounded-3xl border-4 border-black bg-white p-12 text-center shadow-brutal">
-                <Loader2 className="mx-auto h-16 w-16 animate-spin text-purple-600" />
-                <h2 className="mt-6 text-3xl font-black text-black">Crafting Your Guide</h2>
-                <p className="mt-4 text-neutral-500 font-bold">Drawing schematics and writing instructions...</p>
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="border-4 border-black bg-white p-12 text-center shadow-[12px_12px_0px_0px_black] max-w-md">
+                <Loader2 className="mx-auto h-16 w-16 animate-spin text-brand" />
+                <h2 className="mt-6 text-4xl font-black text-black uppercase tracking-tighter">Crafting Your Guide</h2>
+                <p className="mt-4 text-neutral-600 font-bold uppercase text-sm">Drawing schematics and writing instructions...</p>
             </div>
         </div>
       )}
 
       {!loading && resultsMeta && !resultsMeta.canBuildAnything && ideas.length === 0 && (
-         <div className="mx-auto max-w-2xl rounded-3xl border-4 border-black bg-red-50 p-12 text-center shadow-brutal">
+          <div className="mx-auto max-w-2xl border-4 border-black bg-white p-12 text-center shadow-[8px_8px_0px_0px_rgba(239,68,68,1)]">
             <Package className="mx-auto h-16 w-16 text-red-500" />
-            <h2 className="mt-6 text-3xl font-black text-black">Limited Inventory</h2>
-            <p className="mt-4 text-xl font-bold text-red-800">{resultsMeta.emptyStockMessage}</p>
+            <h2 className="mt-6 text-4xl font-black text-black uppercase tracking-tighter">Limited Inventory</h2>
+            <p className="mt-4 text-xl font-bold text-red-600 uppercase italic">"{resultsMeta.emptyStockMessage}"</p>
             <Button 
-                variant="outline" 
+                variant="neo" 
                 onClick={() => fetchIdeas(8)}
-                className="mt-8 border-2 border-black font-black"
+                className="mt-8 px-8 py-6 rounded-none bg-black hover:bg-neutral-900"
             >
                 Try anyway with more ideas
             </Button>
@@ -154,17 +156,16 @@ export default function ProjectGenerator() {
               />
             ))}
             
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-300 p-8">
-               <Button 
+            <div className="flex flex-col items-center justify-center border-4 border-black border-dashed bg-white p-8 group hover:bg-neutral-50 transition-colors">
+               <button 
                   onClick={() => fetchIdeas(8)} 
-                  variant="ghost" 
-                  className="group flex flex-col gap-4 h-auto py-8 hover:bg-neutral-50"
+                  className="flex flex-col items-center gap-4 w-full h-full py-8"
                >
-                  <div className="rounded-full bg-neutral-100 p-4 transition-colors group-hover:bg-neutral-200">
-                    <RefreshCcw className="h-8 w-8 text-neutral-400 group-hover:text-black" />
+                  <div className="border-2 border-black bg-neutral-100 p-4 transition-all group-hover:scale-110 shadow-[4px_4px_0px_0px_black] group-hover:shadow-[6px_6px_0px_0px_black]">
+                    <RefreshCcw className="h-8 w-8 text-black" />
                   </div>
-                  <span className="text-lg font-black text-neutral-400 group-hover:text-black">Load More Ideas</span>
-               </Button>
+                  <span className="text-xl font-black text-black uppercase tracking-tighter mt-4">Load More Ideas</span>
+               </button>
             </div>
           </motion.div>
         )}

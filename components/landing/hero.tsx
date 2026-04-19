@@ -85,7 +85,7 @@ export function Hero() {
                 className="bg-white border-4 border-black p-8 shadow-[10px_10px_0px_#6c72ff] relative z-10"
               >
                 <div className="aspect-square bg-white border-2 border-black border-dashed flex items-center justify-center relative overflow-hidden">
-                  <Image src="/pcb_hero_render.png" alt="Hero" fill className="object-cover" />
+                  <Image src="/pcb_hero_render_new.png" alt="Hero" fill className="object-cover" />
                 </div>
                 <div className="mt-6 space-y-3">
                   <div className="h-1.5 bg-black w-3/4"></div>

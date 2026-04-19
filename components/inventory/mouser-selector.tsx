@@ -53,7 +53,7 @@ export function MouserSelector({
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="group p-4 bg-white border-2 border-black hover:border-blue-600 hover:shadow-[4px_4px_0px_#2563eb] transition-all cursor-pointer flex gap-6 items-center"
+                className="group p-4 bg-white border-2 border-black hover:border-blue-600 hover:shadow-[4px_4px_0px_#000000] transition-all cursor-pointer flex gap-6 items-center"
                 onClick={() => onSelect(p)}
               >
                 <div className="size-20 bg-zinc-100 border-2 border-black overflow-hidden flex items-center justify-center p-2 group-hover:bg-blue-50 transition-colors shrink-0">

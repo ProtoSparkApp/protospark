@@ -87,7 +87,10 @@ export function InventoryTable({
         toast.success("Part deleted from inventory");
         fetchInventory();
       } else {
-        toast.error(res.error || "Delete failed");
+        const errorMessage = typeof res.error === "string" 
+          ? res.error 
+          : Object.values(res.error || {}).flat().filter(Boolean).join(", ");
+        toast.error(errorMessage || "Delete failed");
       }
     } catch (e) {
       toast.error("Operation failed");

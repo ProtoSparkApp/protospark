@@ -59,7 +59,7 @@ export async function addComponent(formData: any, force = false): Promise<Invent
       where: eq(components.userId, userId),
     });
 
-    const duplicate = existingComponents.find(c => {
+    const duplicate = existingComponents.find((c: any) => {
       if (mpn && c.mpn && mpn.trim().toLowerCase() === c.mpn.trim().toLowerCase()) {
         return true;
       }

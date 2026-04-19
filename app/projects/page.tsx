@@ -1,8 +1,12 @@
-import ProjectGenerator from "@/components/projects/project-generator";
-import { Header } from "@/components/header";
+import { auth } from "@/auth";
+import { ProjectDashboard } from "@/components/projects/project-dashboard";
+import { redirect } from "next/navigation";
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
   return (
-    <ProjectGenerator />
+    <ProjectDashboard user={session.user} />
   );
 }

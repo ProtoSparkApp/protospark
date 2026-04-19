@@ -55,7 +55,7 @@ export async function register(values: any) {
   });
 
   const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   await db.insert(verificationTokens).values({
     identifier: email,
@@ -120,7 +120,7 @@ export async function forgotPassword(email: string) {
 
     const [existingUser] = await db.select().from(users).where(eq(users.email, email));
     if (!existingUser) {
-      return { success: true }; // Obfuscation
+      return { success: true };
     }
 
     const token = crypto.randomBytes(32).toString("hex");

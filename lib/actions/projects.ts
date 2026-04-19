@@ -9,7 +9,25 @@ import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-export async function generateProjectIdeas(limit: number = 5) {
+export type ProjectIdea = {
+  title: string;
+  description: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  requiredComponents: {
+    name: string;
+    value: string;
+    quantity: number;
+    status: "In Stock" | "Need to Buy";
+  }[];
+  partsCountInStock: number;
+  partsCountMissing: number;
+};
+
+export type GenerateIdeasResponse =
+  | { success: true; ideas: ProjectIdea[]; canBuildAnything: boolean; emptyStockMessage?: string; error?: never }
+  | { error: string; success?: never; ideas?: never; canBuildAnything?: never; emptyStockMessage?: never };
+
+export async function generateProjectIdeas(limit: number = 5): Promise<GenerateIdeasResponse> {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
   const userId = session.user.id;
@@ -22,11 +40,12 @@ export async function generateProjectIdeas(limit: number = 5) {
     return {
       success: true,
       ideas: [],
-      message: "Your inventory is empty. Add some components first!"
+      canBuildAnything: false,
+      emptyStockMessage: "Your inventory is empty. Add some components first!"
     };
   }
 
-  const inventoryDescription = userComponents.map(c =>
+  const inventoryDescription = userComponents.map((c: any) =>
     `${c.genericName} (${c.value}${c.unit !== 'None' ? ` ${c.unit}` : ''}) x${c.quantity} [Category: ${c.category}]`
   ).join(",\n");
 
@@ -63,16 +82,28 @@ export async function generateProjectIdeas(limit: number = 5) {
       Try to be as realistic as possible given the specific components.`,
     });
 
-    //Do not suggest "Need to Buy" components if there are suitable alternatives already "In Stock"
-
-    return { success: true, ...object };
+    return { success: true, ...object } as GenerateIdeasResponse;
   } catch (error) {
     console.error("AI Generation Error:", error);
     return { error: "Failed to generate ideas. Please check if Google API Key is set." };
   }
 }
 
-export async function getProjectFullGuide(projectSummary: any) {
+export type ProjectGuide = {
+  instructions: {
+    step: number;
+    title: string;
+    content: string;
+  }[];
+  mermaidiagram: string;
+  safetyWarnings: string[];
+};
+
+export type GuideActionResponse =
+  | { success: true; data: ProjectGuide; error?: never }
+  | { error: string; success?: never; data?: never };
+
+export async function getProjectFullGuide(projectSummary: any): Promise<GuideActionResponse> {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
@@ -105,7 +136,7 @@ export async function getProjectFullGuide(projectSummary: any) {
       3. Safety precautions.`,
     });
 
-    return { success: true, data: object };
+    return { success: true, data: object as ProjectGuide };
   } catch (error) {
     console.error("AI Generation Error:", error);
     return { error: "Failed to generate project guide." };
@@ -139,4 +170,17 @@ export async function saveProject(projectData: any) {
     console.error("DB Save Error:", error);
     return { error: `Failed to save project: ${error.message || "Unknown error"}` };
   }
+}
+
+export async function toggleProjectVisibility(projectId: string, isPublic: boolean) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  await db.update(projects)
+    .set({ isPublic: isPublic })
+    .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)));
+
+  revalidatePath("/projects");
+  revalidatePath("/library");
+  return { success: true };
 }
