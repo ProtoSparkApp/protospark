@@ -332,10 +332,10 @@ export function ExploreView() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
                       {trendingEngineers.map((item: any) => (
-                        <button
+                        <div
                           key={item.user.id}
                           onClick={() => viewProfile(item.user)}
-                          className="group relative border-4 border-black bg-white p-6 shadow-brutal hover:-translate-x-2 hover:-translate-y-2 hover:shadow-[12px_12px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-left"
+                          className="group relative border-4 border-black bg-white p-6 shadow-brutal hover:-translate-x-2 hover:-translate-y-2 hover:shadow-[12px_12px_0px_#000] focus:shadow-none focus:translate-x-1 focus:translate-y-1 transition-all text-left cursor-pointer"
                         >
                           <div className="size-20 border-4 border-black mb-6 bg-neutral-50 overflow-hidden shadow-brutal group-hover:scale-105 transition-transform">
                             {item.user.image ? <img src={item.user.image} className="size-full object-cover" /> : <User size={40} className="m-auto mt-4" />}
@@ -348,7 +348,7 @@ export function ExploreView() {
                             <span>Scan Profile</span>
                             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   </section>
@@ -428,10 +428,10 @@ export function ExploreView() {
                     {(query.length > 2 ? userResults : trendingEngineers).map((u: any) => {
                        const user = u.user || u; // handle difference between feed item and search result
                        return (
-                        <button
+                        <div
                           key={user.id}
                           onClick={() => viewProfile(user)}
-                          className="group relative border-4 border-black bg-white p-8 shadow-brutal hover:-translate-x-2 hover:-translate-y-2 hover:shadow-[12px_12px_0px_#000] transition-all text-center"
+                          className="group relative border-4 border-black bg-white p-8 shadow-brutal hover:-translate-x-2 hover:-translate-y-2 hover:shadow-[12px_12px_0px_#000] transition-all text-center cursor-pointer"
                         >
                           <div className="mx-auto size-24 border-4 border-black mb-6 bg-neutral-100 overflow-hidden shadow-brutal group-hover:rotate-3 transition-transform">
                             {user.image ? <img src={user.image} className="size-full object-cover" /> : <User size={48} className="m-auto mt-6" />}
@@ -447,7 +447,7 @@ export function ExploreView() {
                           <Button variant="neo" size="sm" className="w-full">
                              View Assets <ArrowRight className="ml-2" />
                           </Button>
-                        </button>
+                        </div>
                       );
                     })}
 
