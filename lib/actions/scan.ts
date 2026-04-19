@@ -9,10 +9,9 @@ import { ollama } from "ai-sdk-ollama"
 import { google } from "@ai-sdk/google"
 import { generateObject } from "ai"
 import { z } from "zod"
-import fs from "fs"
-import path from "path"
 import { searchMouserProduct } from "@/lib/mouser"
 import { categoryEnum, unitEnum } from "../validators"
+import { put, del } from "@vercel/blob"
 
 const PROVIDER: "ollama" | "gemini" = "gemini";
 
@@ -69,31 +68,17 @@ export async function updateScanSession(id: string, payload: any) {
     if (payload.step1Image && payload.step1Image.startsWith('data:image')) {
       const base64Data = payload.step1Image.replace(/^data:image\/\w+;base64,/, "")
       const buffer = Buffer.from(base64Data, "base64")
-      const filename = `${id}_step1.jpg`
-      const uploadDir = path.join(process.cwd(), "uploads", "scans")
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true })
-      }
-
-      const filepath = path.join(uploadDir, filename)
-      fs.writeFileSync(filepath, buffer)
-      step1Path = `/scans/${filename}`
+      const filename = `scans/${id}_step1.jpg`
+      const { url } = await put(filename, buffer, { access: 'public' })
+      step1Path = url
     }
 
     if (payload.step2Image && payload.step2Image.startsWith('data:image')) {
       const base64Data = payload.step2Image.replace(/^data:image\/\w+;base64,/, "")
       const buffer = Buffer.from(base64Data, "base64")
-      const filename = `${id}_step2.jpg`
-      const uploadDir = path.join(process.cwd(), "uploads", "scans")
-
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true })
-      }
-
-      const filepath = path.join(uploadDir, filename)
-      fs.writeFileSync(filepath, buffer)
-      step2Path = `/scans/${filename}`
+      const filename = `scans/${id}_step2.jpg`
+      const { url } = await put(filename, buffer, { access: 'public' })
+      step2Path = url
     }
 
     await db.update(scanSessions)
@@ -123,17 +108,15 @@ export async function processScan(sessionId: string) {
 
     if (!scanData || !scanData.step1Image) return { error: "Incomplete data" }
 
-    const step1FilePath = path.join(process.cwd(), "uploads", "scans", path.basename(scanData.step1Image))
-    const step1Buffer = fs.readFileSync(step1FilePath)
-    const step1Base64 = step1Buffer.toString("base64")
+    const response1 = await fetch(scanData.step1Image)
+    const step1Buffer = await response1.arrayBuffer()
+    const step1Base64 = Buffer.from(step1Buffer).toString("base64")
 
     let step2Base64 = null
     if (scanData.step2Image) {
-      const step2FilePath = path.join(process.cwd(), "uploads", "scans", path.basename(scanData.step2Image))
-      if (fs.existsSync(step2FilePath)) {
-        const step2Buffer = fs.readFileSync(step2FilePath)
-        step2Base64 = step2Buffer.toString("base64")
-      }
+      const response2 = await fetch(scanData.step2Image)
+      const step2Buffer = await response2.arrayBuffer()
+      step2Base64 = Buffer.from(step2Buffer).toString("base64")
     }
 
     const existingParts = await db.query.components.findMany({
@@ -264,13 +247,11 @@ export async function deleteScanSession(id: string) {
     })
 
     if (scanData) {
-      if (scanData.step1Image && scanData.step1Image.startsWith('/scans/')) {
-        const filepath = path.join(process.cwd(), "uploads", "scans", path.basename(scanData.step1Image))
-        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      if (scanData.step1Image && scanData.step1Image.startsWith('http')) {
+        await del(scanData.step1Image)
       }
-      if (scanData.step2Image && scanData.step2Image.startsWith('/scans/')) {
-        const filepath = path.join(process.cwd(), "uploads", "scans", path.basename(scanData.step2Image))
-        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      if (scanData.step2Image && scanData.step2Image.startsWith('http')) {
+        await del(scanData.step2Image)
       }
     }
 

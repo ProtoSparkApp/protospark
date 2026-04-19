@@ -25,9 +25,18 @@ export async function GET(
     return new NextResponse("Forbidden", { status: 403 })
   }
 
-  const filename = `${sessionId}_step${step}.jpg`
-  const filepath = path.join(process.cwd(), "uploads", "scans", filename)
+  const imageUrl = step === '1' ? scanData.step1Image : scanData.step2Image
 
+  if (!imageUrl) {
+    return new NextResponse("Not Found", { status: 404 })
+  }
+
+  if (imageUrl.startsWith('http')) {
+    return NextResponse.redirect(new URL(imageUrl))
+  }
+
+  // Fallback for any old local paths that might remain (though unlikely to work on Vercel)
+  const filepath = path.join(process.cwd(), "uploads", "scans", path.basename(imageUrl))
   if (!fs.existsSync(filepath)) {
     return new NextResponse("Not Found", { status: 404 })
   }
