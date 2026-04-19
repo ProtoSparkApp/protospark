@@ -9,11 +9,12 @@ export default async function LibraryPage() {
   if (!session?.user) redirect("/login");
 
   const library = await getUserLibrary();
-  if (!library || Array.isArray(library)) {
+  if (!library || Array.isArray(library) || "error" in library) {
+    return redirect("/dashboard");
   }
 
-  const mine = "mine" in library ? library.mine : [];
-  const bookmarked = "bookmarked" in library ? library.bookmarked : [];
+  const mine = library.mine;
+  const bookmarked = library.bookmarked;
 
   return (
     <div className="min-h-screen bg-[#f0f0f0] pb-20">

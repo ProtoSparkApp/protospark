@@ -115,6 +115,9 @@ export const projects = pgTable("project", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export type Project = typeof projects.$inferSelect;
+export type Component = typeof components.$inferSelect;
+
 export const savedProjects = pgTable("savedProject", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),

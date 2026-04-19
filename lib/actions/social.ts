@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { projects, savedProjects, blogPosts, users, components } from "@/lib/db/schema";
+import { projects, savedProjects, blogPosts, users, components, type Project } from "@/lib/db/schema";
 import { eq, and, ne, sql, desc, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -143,7 +143,12 @@ export async function getUserLibrary(params?: {
   difficulty?: string;
   page?: number;
   limit?: number;
-}) {
+}): Promise<{
+  mine: Project[];
+  bookmarked: Project[];
+  totalMine: number;
+  totalBookmarked: number;
+} | { error: string }> {
   const session = await auth();
   if (!session?.user?.id) return { mine: [], bookmarked: [], totalMine: 0, totalBookmarked: 0 };
 
@@ -193,7 +198,7 @@ export async function getUserLibrary(params?: {
 
   return {
     mine: myProjects,
-    bookmarked: bookmarked.map((b: any) => b.project),
+    bookmarked: bookmarked.map((b: { project: Project }) => b.project),
     totalMine: Number(totalMineCount),
     totalBookmarked: Number(totalBookmarkedCount),
   };

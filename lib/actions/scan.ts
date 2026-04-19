@@ -147,9 +147,6 @@ export async function processScan(sessionId: string) {
 
     const { object: idResult } = await generateObject({
       model: visionModel as any,
-      tools: {
-        google_search: google.tools.googleSearch({}),
-      },
       schema: z.object({
         genericName: z.string().describe("General component category name suitable for LLM understanding (e.g. Resistor, Capacitor, Microcontroller)"),
         mpn: z.string().describe("Exact technical name/part number found on the component markings (e.g. NE555, ATMEGA328P, HC-SR04)"),
@@ -174,7 +171,7 @@ export async function processScan(sessionId: string) {
               2. If the component looks like one from the 'Existing components' list, try to use the same genericName and MPN format to avoid duplication.
               3. Provide an optimized 'mouserQuery' for technical search. Respond in JSON.`
             },
-            { type: "image", image: step1Base64, mimeType: "image/jpeg" }
+            { type: "image", image: `data:image/jpeg;base64,${step1Base64}` }
           ]
         }
       ]
@@ -187,9 +184,6 @@ export async function processScan(sessionId: string) {
       try {
         const { object: countResult } = await generateObject({
           model: visionModel as any,
-          tools: {
-            google_search: google.tools.googleSearch({}),
-          },
           schema: z.object({
             count: z.number().describe("Total count of items detected"),
             detections: z.array(z.object({
@@ -217,7 +211,7 @@ RULES:
 4. Provide bounding boxes for the ENTIRE unit(s), not parts of them.
 5. Coordinate system: x, y are TOP-LEFT corner and w/h are dimensions (0-100% relative to image).`
                 },
-                { type: "image", image: step2Base64, mimeType: "image/jpeg" }
+                { type: "image", image: `data:image/jpeg;base64,${step2Base64}` }
               ]
             }
           ]

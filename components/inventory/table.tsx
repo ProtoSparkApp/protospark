@@ -213,7 +213,7 @@ export function InventoryTable({
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] as const }}
                               className="overflow-hidden"
                             >
                               <div className="p-10 flex flex-col xl:flex-row gap-12 relative overflow-hidden">

@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { users, projects } from "@/lib/db/schema";
+import { users, projects, type Project } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { User, Shield, ShieldOff, Settings, Sparkles, Layout } from "lucide-react";
@@ -107,7 +107,7 @@ export default async function ProfilePage() {
           </div>
 
           <div className="space-y-6">
-            {myProjects.map(p => (
+            {myProjects.map((p: Project) => (
               <div key={p.id} className="border-4 border-black bg-white p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="size-12 border-2 border-black bg-neutral-100 flex items-center justify-center shrink-0">

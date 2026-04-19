@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { components, projects } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";

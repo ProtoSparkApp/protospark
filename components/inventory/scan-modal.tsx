@@ -236,7 +236,7 @@ export function ScanModal({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as const }}
         className="bg-white border-4 border-black shadow-[16px_16px_0px_#000] w-full max-w-5xl relative flex flex-col overflow-hidden"
       >
         <button
