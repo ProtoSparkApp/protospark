@@ -35,8 +35,7 @@ export async function getExploreProjects() {
     .where(
       and(
         eq(projects.isPublic, true),
-        eq(users.isPublicProfile, true),
-        userId ? ne(projects.userId, userId) : undefined
+        eq(users.isPublicProfile, true)
       )
     )
     .orderBy(desc(projects.createdAt))
@@ -105,6 +104,21 @@ export async function createBlogPost(data: { projectId: string; title: string; c
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
+  // Verify ownership and update project to public
+  const [project] = await db.select().from(projects).where(
+    and(
+      eq(projects.id, data.projectId),
+      eq(projects.userId, session.user.id)
+    )
+  );
+
+  if (!project) return { error: "Project not found or unauthorized" };
+
+  // Make project public automatically when blogging about it
+  await db.update(projects)
+    .set({ isPublic: true })
+    .where(eq(projects.id, data.projectId));
+
   const [post] = await db.insert(blogPosts).values({
     userId: session.user.id,
     projectId: data.projectId,
@@ -114,6 +128,9 @@ export async function createBlogPost(data: { projectId: string; title: string; c
   }).returning();
 
   revalidatePath("/blog");
+  revalidatePath("/projects");
+  revalidatePath("/explore");
+  
   return { success: true, post };
 }
 
@@ -132,7 +149,12 @@ export async function getBlogPosts() {
     .from(blogPosts)
     .innerJoin(projects, eq(blogPosts.projectId, projects.id))
     .innerJoin(users, eq(blogPosts.userId, users.id))
-    .where(eq(users.isPublicProfile, true))
+    .where(
+      and(
+        eq(users.isPublicProfile, true),
+        eq(projects.isPublic, true)
+      )
+    )
     .orderBy(desc(blogPosts.createdAt));
 
   return results;
@@ -274,6 +296,7 @@ export async function searchUsers(query: string) {
     name: users.name,
     image: users.image,
     bio: users.bio,
+    projectCount: sql<number>`(SELECT count(*) FROM ${projects} WHERE ${projects.userId} = ${users.id} AND ${projects.isPublic} = true)`,
   })
     .from(users)
     .where(
@@ -282,6 +305,65 @@ export async function searchUsers(query: string) {
         sql`${users.name} ILIKE ${`%${query}%`}`
       )
     )
+    .limit(10);
+
+  return results;
+}
+
+export async function searchProjects(query: string) {
+  if (!query) return [];
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  const results = await db.select({
+    project: projects,
+    userName: users.name,
+    userImage: users.image,
+    isBookmarked: userId
+      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
+      : sql<boolean>`false`
+  })
+    .from(projects)
+    .innerJoin(users, eq(projects.userId, users.id))
+    .where(
+      and(
+        eq(projects.isPublic, true),
+        eq(users.isPublicProfile, true),
+        or(
+          ilike(projects.title, `%${query}%`),
+          ilike(projects.description, `%${query}%`)
+        )
+      )
+    )
+    .limit(20);
+
+  return results;
+}
+
+export async function getTopProjects() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+
+  const results = await db.select({
+    project: projects,
+    userName: users.name,
+    userImage: users.image,
+    saveCount: saveCountSql,
+    isBookmarked: userId
+      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
+      : sql<boolean>`false`
+  })
+    .from(projects)
+    .innerJoin(users, eq(projects.userId, users.id))
+    .where(
+      and(
+        eq(projects.isPublic, true),
+        eq(users.isPublicProfile, true)
+      )
+    )
+    .orderBy(desc(saveCountSql))
     .limit(10);
 
   return results;
