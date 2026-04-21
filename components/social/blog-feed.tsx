@@ -23,7 +23,7 @@ export function BlogFeed({ posts, sessionUser }: { posts: any[]; sessionUser: an
           guide={{
             instructions: selectedProject.instructions,
             mermaidiagram: selectedProject.mermaidDiagram || "",
-            safetyWarnings: [],
+            safetyWarnings: selectedProject.safetyWarnings || [],
           }}
           onBack={() => setSelectedProject(null)}
           savedId={selectedProject.id}

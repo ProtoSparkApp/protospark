@@ -92,6 +92,7 @@ export default function InventoryPage() {
                       className="h-8 text-xs pr-8"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
+                      maxLength={255}
                     />
                     {search && (
                       <button

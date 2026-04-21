@@ -4,6 +4,12 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/header";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "ProtoSpark | Industrial Hardware Engineering Engine",
+  description: "The ultimate tool for electronic component management and project development.",
+};
 
 const fontHeading = Fraunces({
   subsets: ["latin"],

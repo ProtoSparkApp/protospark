@@ -35,7 +35,6 @@ export async function GET(
     return NextResponse.redirect(new URL(imageUrl))
   }
 
-  // Fallback for any old local paths that might remain (though unlikely to work on Vercel)
   const filepath = path.join(process.cwd(), "uploads", "scans", path.basename(imageUrl))
   if (!fs.existsSync(filepath)) {
     return new NextResponse("Not Found", { status: 404 })

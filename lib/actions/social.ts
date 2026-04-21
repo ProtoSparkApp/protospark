@@ -93,6 +93,7 @@ export async function cloneProject(projectId: string) {
     schematicUrl: original.schematicUrl,
     requiredComponents: original.requiredComponents,
     difficulty: original.difficulty,
+    safetyWarnings: (original as any).safetyWarnings || [],
     isPublic: false,
     clonedFromId: original.id,
   }).returning();

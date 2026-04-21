@@ -65,6 +65,7 @@ export default function ForgotPasswordPage() {
               type="email"
               placeholder="ADMIN@PROTOSPARK.APP"
               required
+              maxLength={255}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

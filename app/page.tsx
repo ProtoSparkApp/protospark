@@ -6,6 +6,7 @@ import { MouserIntegration } from "@/components/landing/mouser-integration";
 import { Hero } from "@/components/landing/hero";
 import TargetCursor from "@/components/TargetCursor";
 import FaultyTerminal from "@/components/FaultyTerminal";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -34,9 +35,11 @@ export default function Home() {
               Stop hoarding. <br /> Start <span className="underline decoration-brand decoration-[6px] underline-offset-8">Sparking</span>.
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-6">
-              <Button variant="neo" size="lg" className="h-14 px-8 text-lg cursor-target">
-                Create Account
-              </Button>
+              <Link href="/register">
+                <Button variant="neo" size="lg" className="h-14 px-8 text-lg cursor-target">
+                  Create Account
+                </Button>
+              </Link>
             </div>
             <p className="mt-6 font-mono font-bold uppercase text-xs text-white/60">Join 22,000+ builders globally</p>
           </div>

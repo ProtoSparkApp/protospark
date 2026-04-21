@@ -234,6 +234,7 @@ export function ManualAddForm({
                 onChange={(e) => setFormValues({ ...formValues, mpn: e.target.value })}
                 disabled={loading || !!confirmation}
                 className="flex-1"
+                maxLength={255}
               />
               <Button
                 type="button"
@@ -259,6 +260,7 @@ export function ManualAddForm({
               value={formValues.genericName}
               onChange={(e) => setFormValues({ ...formValues, genericName: e.target.value })}
               disabled={loading || !!confirmation}
+              maxLength={50}
             />
             {errors.genericName && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.genericName[0]}</p>}
           </div>
@@ -299,6 +301,7 @@ export function ManualAddForm({
               value={formValues.value}
               onChange={(e) => setFormValues({ ...formValues, value: e.target.value })}
               disabled={loading || !!confirmation}
+              maxLength={255}
             />
             {errors.value && <p className="text-red-500 font-mono text-[10px] font-bold uppercase">{errors.value[0]}</p>}
           </div>
@@ -327,6 +330,7 @@ export function ManualAddForm({
             value={formValues.description || ""}
             onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
             disabled={loading || searchingTme || !!confirmation}
+            maxLength={200}
           />
         </div>
 

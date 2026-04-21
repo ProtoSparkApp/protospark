@@ -13,10 +13,14 @@ import {
   Eye,
   Layers,
   Sparkles,
-  Bookmark
+  Bookmark,
+  Trash2,
+  X,
+  AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { bookmarkProject, cloneProject, checkInventoryForProject } from "@/lib/actions/social";
+import { deleteProject } from "@/lib/actions/projects";
 import { toast } from "sonner";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -27,7 +31,9 @@ interface CommunityProjectCardProps {
   authorImage?: string;
   isBookmarked?: boolean;
   showInventoryMatch?: boolean;
+  canDelete?: boolean;
   onInitialize?: (project: any) => void;
+  onDeleted?: (projectId: string) => void;
 }
 
 export function CommunityProjectCard({
@@ -36,11 +42,14 @@ export function CommunityProjectCard({
   authorImage,
   isBookmarked: initialIsBookmarked = false,
   showInventoryMatch = true,
-  onInitialize
+  canDelete = false,
+  onInitialize,
+  onDeleted
 }: CommunityProjectCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [inventoryStatus, setInventoryStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   useEffect(() => {
     setIsBookmarked(initialIsBookmarked);
@@ -68,6 +77,19 @@ export function CommunityProjectCard({
       }
     } else {
       toast.error(res.error);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsLoading(true);
+    const res = await deleteProject(project.id);
+    setIsLoading(false);
+    if (res.success) {
+      toast.success("Blueprint permanently deleted.");
+      if (onDeleted) onDeleted(project.id);
+      setShowConfirmDelete(false);
+    } else {
+      toast.error(res.error || "Failed to delete blueprint.");
     }
   };
 
@@ -105,6 +127,20 @@ export function CommunityProjectCard({
           </span>
         </div>
         <div className="flex gap-2">
+          {canDelete && (
+             <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowConfirmDelete(true);
+              }}
+              className="h-8 w-8 rounded-none border-2 border-black bg-white text-black hover:bg-red-500 hover:text-white transition-all"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant="ghost"
@@ -122,6 +158,45 @@ export function CommunityProjectCard({
           </Button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showConfirmDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-white/95 backdrop-blur-sm"
+          >
+            <div className="w-full border-4 border-black bg-white p-6 shadow-brutal text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="size-12 border-4 border-black bg-red-100 flex items-center justify-center text-red-600">
+                  <AlertTriangle size={24} />
+                </div>
+              </div>
+              <div>
+                <h4 className="font-black uppercase text-lg leading-tight">Delete Blueprint?</h4>
+                <p className="text-[10px] font-black uppercase text-black/40 mt-1">This action cannot be undone.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmDelete(false)}
+                  className="rounded-none border-2 border-black font-black uppercase text-xs h-10 hover:bg-neutral-100"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleDelete}
+                  disabled={isLoading}
+                  className="rounded-none border-2 border-black bg-red-600 text-white font-black uppercase text-xs h-10 hover:bg-red-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  {isLoading ? "Deleting..." : "Delete"}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="p-6 flex-1 flex flex-col">
         <div className="mb-4">

@@ -35,7 +35,12 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   const [saving, setSaving] = useState(false);
   const [isPublic, setIsPublic] = useState(initialIsPublic || false);
   const [isPosting, setIsPosting] = useState(false);
+  const [showDiagram, setShowDiagram] = useState(true);
   const [components, setComponents] = useState(idea.requiredComponents || []);
+
+  useEffect(() => {
+    setShowDiagram(true);
+  }, [guide.mermaidiagram]);
 
   useEffect(() => {
     if (idea.requiredComponents?.length > 0) {
@@ -53,7 +58,8 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
       const res = await saveProject({
         ...idea,
         instructions: guide.instructions,
-        mermaidiagram: guide.mermaidiagram
+        mermaidiagram: guide.mermaidiagram,
+        safetyWarnings: guide.safetyWarnings
       });
       if (res.success) {
         toast.success("Project saved to your dashboard!");
@@ -139,18 +145,20 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
           </div>
 
           <div className="mt-12 space-y-12">
-            <section>
-              <h2 className="mb-6 flex items-center gap-2 text-2xl font-black text-black">
-                <Wrench className="h-6 w-6 text-blue-500" />
-                Connection Diagram
-              </h2>
-              <div className="rounded-none border-4 border-black bg-neutral-100 p-1 shadow-brutal">
-                <Mermaid chart={guide.mermaidiagram} />
-              </div>
-              <p className="mt-4 text-sm font-bold text-neutral-500 italic text-center">
-                * Diagram shows logical connections. Match pin labels to your physical components.
-              </p>
-            </section>
+            {showDiagram && (
+              <section>
+                <h2 className="mb-6 flex items-center gap-2 text-2xl font-black text-black">
+                  <Wrench className="h-6 w-6 text-blue-500" />
+                  Connection Diagram
+                </h2>
+                <div className="rounded-none border-4 border-black bg-neutral-100 p-1 shadow-brutal">
+                  <Mermaid chart={guide.mermaidiagram} onHide={() => setShowDiagram(false)} />
+                </div>
+                <p className="mt-4 text-sm font-bold text-neutral-500 italic text-center">
+                  * Diagram shows logical connections. Match pin labels to your physical components.
+                </p>
+              </section>
+            )}
 
             <section className="space-y-6">
               <h2 className="flex items-center gap-2 text-2xl font-black text-black">

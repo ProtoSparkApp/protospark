@@ -8,15 +8,21 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { transporter } from "@/lib/mailer";
 import { verificationTokens } from "@/lib/db/schema";
-import { registerSchema, resetPasswordSchema } from "@/lib/validators";
+import { loginSchema, registerSchema, resetPasswordSchema } from "@/lib/validators";
 import { getBrutalistEmailTemplate } from "@/lib/email-templates";
 
 export async function login(values: any) {
   try {
+    const validated = loginSchema.safeParse(values);
+    if (!validated.success) {
+      return { error: "Invalid input" };
+    }
+
     await signIn("credentials", {
-      ...values,
+      ...validated.data,
       redirectTo: "/",
     });
+
   } catch (error: any) {
     if (error.message && error.message.includes("verify your email")) {
       return { error: "Please verify your email before logging in." };

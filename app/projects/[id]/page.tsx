@@ -28,7 +28,7 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
   const guide = {
     instructions: project.instructions as any[],
     mermaidiagram: project.mermaidDiagram || "",
-    safetyWarnings: [],
+    safetyWarnings: (project as any).safetyWarnings || [],
   };
 
   return (

@@ -61,6 +61,7 @@ export default async function LibraryPage() {
                   authorName={session.user?.name || "Me"}
                   authorImage={session.user?.image || undefined}
                   showInventoryMatch={true}
+                  canDelete={true}
                 />
               ))}
             </div>
