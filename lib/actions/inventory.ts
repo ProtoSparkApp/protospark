@@ -144,7 +144,7 @@ export async function getInventory(params: {
   return {
     data,
     total,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.max(1, Math.ceil(total / limit)),
     currentPage: page
   };
 }

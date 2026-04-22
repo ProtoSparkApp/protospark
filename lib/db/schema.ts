@@ -110,6 +110,7 @@ export const projects = pgTable("project", {
   schematicUrl: text("schematicUrl"),
   requiredComponents: jsonb("requiredComponents").notNull(),
   difficulty: text("difficulty").notNull(),
+  safetyWarnings: jsonb("safetyWarnings").default([]),
   isPublic: boolean("isPublic").default(false).notNull(),
   clonedFromId: uuid("clonedFromId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

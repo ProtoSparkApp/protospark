@@ -300,7 +300,7 @@ export function ExploreView() {
                         guide={{
                           instructions: selectedGuideProject.instructions,
                           mermaidiagram: selectedGuideProject.mermaidDiagram || "",
-                          safetyWarnings: [],
+                          safetyWarnings: selectedGuideProject.safetyWarnings || [],
                         }}
                         onBack={() => setSelectedGuideProject(null)}
                         savedId={selectedGuideProject.id}

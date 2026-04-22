@@ -116,7 +116,7 @@ export async function getProjectFullGuide(projectSummary: any): Promise<GuideAct
           title: z.string(),
           content: z.string(),
         })),
-        mermaidiagram: z.string().describe("A Mermaid.js diagram representing the circuit connections. Use 'graph TD' or similar. Use descriptive labels for pins."),
+        mermaidiagram: z.string().describe("A Mermaid.js diagram representing the circuit connections. Use 'graph TD' or similar. Use descriptive labels for pins. Keep it valid and finish all connections."),
         safetyWarnings: z.array(z.string()),
       }),
       prompt: `Generate a detailed step-by-step guide for building: ${projectSummary.title}.
@@ -128,11 +128,22 @@ export async function getProjectFullGuide(projectSummary: any): Promise<GuideAct
       2. A connection diagram in Mermaid.js format. 
          Guidelines for the diagram:
          - Use 'graph LR' or 'graph TD'.
-         - Represent components as descriptive blocks.
-         - CRITICAL: Do not just connect box to box. Specify the PIN names on each end of the connection (e.g., "NodeMCU[D2 Pin] --- Resistor1[10k Ohm] --- LED[Anode]").
-         - Use labels for power rails (VCC/GND).
-         - If possible, group related parts into subgraphs.
-         - The diagram should be readable by someone without a formal schematic.
+         - Represent components as descriptive blocks with IDs and quoted labels. Format: NodeID["Label with (Parentheses)"]
+         - CRITICAL: Always wrap node labels in double quotes and square brackets NodeID["Label"] to avoid errors with special characters like () or [].
+         - Node IDs should be alphanumeric and single-word if possible (e.g., 'Switch1', 'LED_Red').
+         - Every connection must be complete. Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
+         - Use '---' for simple connections or '-->' for directional ones.
+         - STRICTLY FORBIDDEN: Do NOT use the '--|>' syntax. For labeled connections, always use '-->|Label|'.
+         - Do NOT leave trailing dashes at the end of a line.
+         - Do NOT use spaces inside labels of links (use '|Signal|' instead of '| Signal |').
+         - Specify the PIN names on each end of the connection.
+         - The diagram must be valid Mermaid syntax. Double-check all brackets.
+         STRICT RULES:
+         - NEVER chain connections like A --> B --> C
+         - ALWAYS split into separate lines
+         - EVERY connection must be exactly: A -->|Label| B
+         - NEVER end a line with --> or --
+         - NEVER connect to plain text, only nodes
       3. Safety precautions.`,
     });
 
@@ -162,6 +173,7 @@ export async function saveProject(projectData: any) {
       requiredComponents: projectData.requiredComponents || [],
       instructions: projectData.instructions || [],
       mermaidDiagram: projectData.mermaidiagram || null,
+      safetyWarnings: projectData.safetyWarnings || [],
     }).returning();
 
     revalidatePath("/projects");
@@ -183,4 +195,21 @@ export async function toggleProjectVisibility(projectId: string, isPublic: boole
   revalidatePath("/projects");
   revalidatePath("/library");
   return { success: true };
+}
+
+export async function deleteProject(projectId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  try {
+    await db.delete(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)));
+
+    revalidatePath("/projects");
+    revalidatePath("/library");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete Error:", error);
+    return { error: "Failed to delete project" };
+  }
 }

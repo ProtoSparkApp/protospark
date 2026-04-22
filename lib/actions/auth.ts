@@ -8,15 +8,21 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { transporter } from "@/lib/mailer";
 import { verificationTokens } from "@/lib/db/schema";
-import { registerSchema, resetPasswordSchema } from "@/lib/validators";
+import { loginSchema, registerSchema, resetPasswordSchema } from "@/lib/validators";
 import { getBrutalistEmailTemplate } from "@/lib/email-templates";
 
 export async function login(values: any) {
   try {
+    const validated = loginSchema.safeParse(values);
+    if (!validated.success) {
+      return { error: "Invalid input" };
+    }
+
     await signIn("credentials", {
-      ...values,
+      ...validated.data,
       redirectTo: "/",
     });
+
   } catch (error: any) {
     if (error.message && error.message.includes("verify your email")) {
       return { error: "Please verify your email before logging in." };
@@ -33,52 +39,62 @@ export async function loginWithProvider(provider: "google" | "github") {
 }
 
 export async function register(values: any) {
-  const validated = registerSchema.safeParse(values);
+  try {
+    const validated = registerSchema.safeParse(values);
 
-  if (!validated.success) {
-    return { error: "Invalid input" };
+    if (!validated.success) {
+      return { error: "Invalid input" };
+    }
+
+    const { email, password, name } = validated.data;
+
+    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+    if (existingUser) {
+      return { error: "Email already exists" };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.insert(users).values({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
+
+    await db.insert(verificationTokens).values({
+      identifier: email,
+      token,
+      expires,
+    });
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:3000";
+    const verifyLink = `${baseUrl}/verify?token=${token}`;
+
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "ProtoSpark - Verify your identity",
+        html: getBrutalistEmailTemplate(
+          "Verify Identity",
+          "Welcome to ProtoSpark. Click the link below to verify your email address.",
+          "Verify Email",
+          verifyLink
+        ),
+      });
+    } catch (mailError) {
+      console.error("Failed to send verification email:", mailError);
+      return { error: "Created account, but failed to send verification email. Please contact support or check SMTP settings." };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Registration error:", error);
+    return { error: "Something went wrong during registration." };
   }
-
-  const { email, password, name } = validated.data;
-
-  const [existingUser] = await db.select().from(users).where(eq(users.email, email));
-  if (existingUser) {
-    return { error: "Email already exists" };
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  await db.insert(users).values({
-    name,
-    email,
-    password: hashedPassword,
-  });
-
-  const token = crypto.randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
-
-  await db.insert(verificationTokens).values({
-    identifier: email,
-    token,
-    expires,
-  });
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL || "http://localhost:3000";
-  const verifyLink = `${baseUrl}/verify?token=${token}`;
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "ProtoSpark - Verify your identity",
-    html: getBrutalistEmailTemplate(
-      "Verify Identity",
-      "Welcome to ProtoSpark. Click the link below to verify your email address.",
-      "Verify Email",
-      verifyLink
-    ),
-  });
-
-  return { success: true };
 }
 
 export async function verifyEmail(token: string) {

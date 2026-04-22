@@ -74,6 +74,12 @@ export function InventoryTable({
     setPage(1);
   }, [debouncedSearch, filters?.category]);
 
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
@@ -105,8 +111,8 @@ export function InventoryTable({
       <div className="flex justify-between items-center mb-6">
         <h2 className="font-heading text-4xl font-black uppercase tracking-tighter">Current Stock</h2>
         <div className="flex gap-2 font-mono text-xs font-bold uppercase text-white">
-          <span className="bg-black px-2 py-1">Total Items: {total}</span>
-          <span className="bg-brand px-2 py-1">Page {page} of {totalPages}</span>
+          <span className="bg-black px-2 py-1 border-2 border-black">Total Items: {total}</span>
+          <span className="bg-brand px-2 py-1 border-2 border-black">Page {page} // {totalPages}</span>
         </div>
       </div>
 

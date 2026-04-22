@@ -182,7 +182,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                   guide={{
                     instructions: selectedProject.instructions,
                     mermaidiagram: selectedProject.mermaidDiagram || "",
-                    safetyWarnings: [],
+                    safetyWarnings: selectedProject.safetyWarnings || [],
                   }}
                   onBack={() => setSelectedProject(null)}
                   savedId={selectedProject.id}
@@ -223,6 +223,15 @@ export function ProjectDashboard({ user }: { user: any }) {
                           project={p}
                           authorName={user.name}
                           authorImage={user.image}
+                          canDelete={true}
+                          onDeleted={() => {
+                            getUserLibrary({
+                              search: debouncedSearch,
+                              difficulty,
+                              page,
+                              limit
+                            }).then(res => setLibrary(res as any));
+                          }}
                           onInitialize={(project) => setSelectedProject(project)}
                         />
                       ))

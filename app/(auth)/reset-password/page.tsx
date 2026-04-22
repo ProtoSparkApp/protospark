@@ -90,6 +90,7 @@ function ResetPasswordForm() {
             type="password"
             placeholder="MINIMUM 8 CHARACTERS"
             required
+            maxLength={255}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
