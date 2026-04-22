@@ -258,9 +258,11 @@ export function ExploreView() {
                     </div>
                     <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">{selectedUser.name}</h2>
                   </div>
-                  <p className="text-lg font-medium uppercase text-neutral-600 max-w-2xl leading-tight">
-                    {profileData?.user?.bio || "This engineer has not yet decrypted their tactical biography. Remaining in stealth mode."}
-                  </p>
+                  {profileData?.user?.bio && (
+                    <p className="text-lg font-medium uppercase text-neutral-600 max-w-2xl leading-tight">
+                      {profileData.user.bio}
+                    </p>
+                  )}
                     <div className="flex flex-wrap items-center gap-6 pt-4 border-t-2 border-black/10 border-dashed w-full md:w-auto">
                       <div className="flex items-center gap-2 font-black uppercase text-xs">
                         <Layout size={16} className="text-brand" />
@@ -595,9 +597,13 @@ export function ExploreView() {
                             </div>
                           </div>
                           
-                          <p className="text-xs font-bold uppercase text-black/50 line-clamp-2 mb-8 h-8 italic">
-                            "{user.bio || "Bio encrypted. High clearance required for decryption."}"
-                          </p>
+                          {user.bio ? (
+                            <p className="text-xs font-bold uppercase text-black/50 line-clamp-2 mb-8 h-8 italic">
+                              "{user.bio}"
+                            </p>
+                          ) : (
+                            <div className="mb-8 h-8" />
+                          )}
                           
                           <Button variant="neo" className="w-full h-12 rounded-none font-black text-xs uppercase group-hover:bg-brand group-hover:text-white transition-colors">
                             Access Archives <ArrowRight className="ml-2" size={16} />

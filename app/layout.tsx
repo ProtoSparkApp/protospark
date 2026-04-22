@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Fraunces, Inter, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
@@ -21,6 +22,20 @@ const fontMono = Geist_Mono({
 })
 
 import { Toaster } from "sonner";
+
+export const metadata: Metadata = {
+  title: "ProtoSpark",
+  description: "Advanced Agentic Coding & Prototyping Platform",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon.ico" },
+    ],
+    apple: "/favicon/apple-touch-icon.png",
+  },
+  manifest: "/favicon/site.webmanifest",
+};
 
 export default function RootLayout({
   children,

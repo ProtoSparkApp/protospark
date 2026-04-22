@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { Camera, Scan, Brain, CheckCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 
-export function FeatureScan() {
+export function FeatureScan({ isAuthenticated }: { isAuthenticated?: boolean }) {
   return (
     <section className="py-24 overflow-hidden">
       <div className="container mx-auto px-4">
@@ -62,9 +63,11 @@ export function FeatureScan() {
                 </li>
               ))}
             </ul>
-            <Button variant="neo" size="lg" className="cursor-target">
-              Try Scanner Demo
-            </Button>
+            <Link href={isAuthenticated ? "/inventory" : "/login"}>
+              <Button variant="neo" size="lg" className="cursor-target">
+                {isAuthenticated ? "Check your Inventory" : "Try Scanner Demo"}
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

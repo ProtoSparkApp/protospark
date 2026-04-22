@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Activity, CircuitBoard, Target } from "lucide-react";
 import { CpuIcon, CubeIcon, LightningIcon } from "@phosphor-icons/react";
 import Image from "next/image";
+import Link from "next/link";
 
-export function Hero() {
+export function Hero({ isAuthenticated }: { isAuthenticated?: boolean }) {
   return (
     <section className="min-h-[80dvh] flex items-center relative py-12 lg:py-20">
       <video
@@ -55,12 +56,16 @@ export function Hero() {
               transition={{ delay: 0.2 }}
               className="flex flex-wrap gap-4 pt-4"
             >
-              <Button variant="neo" size="lg" className="group h-14 px-8 text-lg cursor-target">
-                Get Started Free
-              </Button>
-              <Button variant="outline" size="lg" className="h-14 px-8 text-lg cursor-target">
-                Browse Projects
-              </Button>
+              <Link href={isAuthenticated ? "/inventory" : "/register"}>
+                <Button variant="neo" size="lg" className="group h-14 px-8 text-lg cursor-target">
+                  {isAuthenticated ? "Go to Inventory" : "Get Started Free"}
+                </Button>
+              </Link>
+              <Link href={isAuthenticated ? "/explore" : "/login"}>
+                <Button variant="outline" size="lg" className="h-14 px-8 text-lg cursor-target">
+                  Browse Projects
+                </Button>
+              </Link>
             </motion.div>
 
             <div className="flex gap-8 pt-6 border-t-2 border-black/10 max-w-sm">
