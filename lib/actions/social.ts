@@ -22,10 +22,13 @@ export async function getExploreProjects() {
   const session = await auth();
   const userId = session?.user?.id;
 
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
+    saveCount: saveCountSql,
     isBookmarked: userId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
       : sql<boolean>`false`
@@ -38,7 +41,7 @@ export async function getExploreProjects() {
         eq(users.isPublicProfile, true)
       )
     )
-    .orderBy(desc(projects.createdAt))
+    .orderBy(desc(saveCountSql))
     .limit(20);
 
   return results;
@@ -315,10 +318,13 @@ export async function searchProjects(query: string) {
   const session = await auth();
   const userId = session?.user?.id;
 
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
+    saveCount: saveCountSql,
     isBookmarked: userId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
       : sql<boolean>`false`
@@ -335,6 +341,7 @@ export async function searchProjects(query: string) {
         )
       )
     )
+    .orderBy(desc(saveCountSql))
     .limit(20);
 
   return results;
@@ -376,8 +383,13 @@ export async function getPublicProfile(userId: string) {
   const [user] = await db.select().from(users).where(and(eq(users.id, userId), eq(users.isPublicProfile, true)));
   if (!user) return null;
 
+  const [{ count: totalProjectCount }] = await db.select({ count: sql<number>`count(*)` })
+    .from(projects)
+    .where(eq(projects.userId, userId));
+
   const publicProjects = await db.select({
     project: projects,
+    saveCount: sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`,
     isBookmarked: currentUserId
       ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${currentUserId})`
       : sql<boolean>`false`
@@ -389,6 +401,7 @@ export async function getPublicProfile(userId: string) {
   return {
     user,
     projects: publicProjects,
+    totalProjectCount: Number(totalProjectCount),
   };
 }
 
@@ -410,4 +423,26 @@ export async function getExploreFeed() {
     .limit(10);
 
   return recentProfiles;
+}
+
+export async function getTopContributors() {
+  const results = await db.select({
+    id: users.id,
+    name: users.name,
+    image: users.image,
+    count: sql<number>`count(${projects.id})`,
+  })
+    .from(users)
+    .innerJoin(projects, eq(users.id, projects.userId))
+    .where(
+      and(
+        eq(users.isPublicProfile, true),
+        eq(projects.isPublic, true)
+      )
+    )
+    .groupBy(users.id, users.name, users.image)
+    .orderBy(desc(sql`count(${projects.id})`))
+    .limit(5);
+
+  return results;
 }

@@ -10,9 +10,10 @@ import { useDebounce } from "@/hooks/use-debounce";
 interface BlogClientProps {
   initialPosts: any[];
   sessionUser?: any;
+  topContributors?: any[];
 }
 
-export function BlogClient({ initialPosts, sessionUser }: BlogClientProps) {
+export function BlogClient({ initialPosts, sessionUser, topContributors = [] }: BlogClientProps) {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState<string | null>(null);
   
@@ -111,21 +112,29 @@ export function BlogClient({ initialPosts, sessionUser }: BlogClientProps) {
             Top Contributors
           </h4>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
-                <div className="size-12 border-2 border-black bg-neutral-50 group-hover:bg-brand transition-colors flex items-center justify-center shadow-[2px_2px_0px_#000]">
-                  <User size={20} className="group-hover:text-white transition-colors" />
+            {topContributors.length > 0 ? (
+              topContributors.map((user) => (
+                <div key={user.id} className="flex items-center gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+                  <div className="size-12 border-2 border-black bg-neutral-50 group-hover:bg-brand transition-colors flex items-center justify-center shadow-[2px_2px_0px_#000] overflow-hidden">
+                    {user.image ? (
+                      <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={20} className="group-hover:text-white transition-colors" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase leading-none mb-1 group-hover:text-brand transition-colors">
+                      {user.name || "ANONYMOUS_ENG"}
+                    </p>
+                    <p className="text-[9px] font-black text-black/40 uppercase">
+                      {user.count} Deployments
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase leading-none mb-1 group-hover:text-brand transition-colors">
-                    STATION_DECI_{i}82
-                  </p>
-                  <p className="text-[9px] font-black text-black/40 uppercase">
-                    {15 - i * 2} Deployments
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-[10px] font-bold text-black/20 uppercase text-center py-4">No data retrieved</p>
+            )}
           </div>
         </div>
       </aside>

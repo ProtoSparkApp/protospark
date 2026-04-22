@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { User, Shield, ShieldOff, Settings, Sparkles, Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RankBadge } from "@/components/social/rank-badge";
 import { toggleProfilePrivacy } from "@/lib/actions/social";
 import { revalidatePath } from "next/cache";
 
@@ -55,6 +56,7 @@ export default async function ProfilePage() {
                   <Layout size={12} />
                   {myProjects.length} Projects
                 </div>
+                <RankBadge projectCount={myProjects.length} className="ml-2" />
               </div>
             </div>
           </div>

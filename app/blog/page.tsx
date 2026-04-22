@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
-import { getBlogPosts } from "@/lib/actions/social";
+import { getBlogPosts, getTopContributors } from "@/lib/actions/social";
 import { BlogClient } from "@/components/social/blog-client";
 
 export default async function BlogPage() {
   const posts = await getBlogPosts();
+  const topContributors = await getTopContributors();
   const session = await auth();
 
   return (
@@ -21,7 +22,11 @@ export default async function BlogPage() {
           </div>
         </div>
 
-        <BlogClient initialPosts={posts} sessionUser={session?.user} />
+        <BlogClient 
+          initialPosts={posts} 
+          sessionUser={session?.user} 
+          topContributors={topContributors}
+        />
       </main>
     </div>
   );
