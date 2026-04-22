@@ -5,12 +5,6 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 import { Header } from "@/components/header";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "ProtoSpark | Industrial Hardware Engineering Engine",
-  description: "The ultimate tool for electronic component management and project development.",
-};
 
 const fontHeading = Fraunces({
   subsets: ["latin"],
@@ -30,8 +24,8 @@ const fontMono = Geist_Mono({
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "ProtoSpark",
-  description: "Advanced Agentic Coding & Prototyping Platform",
+  title: "ProtoSpark | Industrial Hardware Engineering Engine",
+  description: "Advanced Agentic Coding & Prototyping Platform. The ultimate tool for electronic component management and project development.",
   icons: {
     icon: [
       { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
