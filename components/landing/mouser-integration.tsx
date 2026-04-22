@@ -26,9 +26,11 @@ export function MouserIntegration() {
                 Found a project but missing a specialized MCU or sensor? One click sends your entire "Missing Parts" bill of materials to Mouser for overnight shipping.
               </p>
               <div className="flex gap-4">
-                <Button variant="outline" size="lg" className="cursor-target">
-                  Browse Mouser Catalog
-                </Button>
+                <a href="https://www.mouser.com/" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="lg" className="cursor-target">
+                    Browse Mouser Catalog
+                  </Button>
+                </a>
               </div>
             </div>
 

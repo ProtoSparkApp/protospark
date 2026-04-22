@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FeatureScan } from "@/components/landing/feature-scan";
 import { ComponentMarquee } from "@/components/landing/marquee";
@@ -6,18 +7,21 @@ import { MouserIntegration } from "@/components/landing/mouser-integration";
 import { Hero } from "@/components/landing/hero";
 import TargetCursor from "@/components/TargetCursor";
 import FaultyTerminal from "@/components/FaultyTerminal";
-import Link from "next/link";
 
-export default function Home() {
+import { auth } from "@/auth";
+
+export default async function Home() {
+  const session = await auth();
+  const isAuthenticated = !!session;
   return (
     <div className="selection:bg-brand selection:text-white">
       <TargetCursor />
       <main className="flex-1 overflow-x-hidden">
-        <Hero />
+        <Hero isAuthenticated={isAuthenticated} />
 
         <ComponentMarquee />
 
-        <FeatureScan />
+        <FeatureScan isAuthenticated={isAuthenticated} />
 
         <BentoGallery />
 
@@ -35,9 +39,9 @@ export default function Home() {
               Stop hoarding. <br /> Start <span className="underline decoration-brand decoration-[6px] underline-offset-8">Sparking</span>.
             </h2>
             <div className="mt-10 flex flex-wrap justify-center gap-6">
-              <Link href="/register">
+              <Link href={isAuthenticated ? "/inventory" : "/register"}>
                 <Button variant="neo" size="lg" className="h-14 px-8 text-lg cursor-target">
-                  Create Account
+                  {isAuthenticated ? "Go to Inventory" : "Create Account"}
                 </Button>
               </Link>
             </div>
@@ -51,10 +55,10 @@ export default function Home() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="font-heading text-2xl font-black uppercase italic">ProtoSpark</div>
           <div className="flex gap-8 font-mono text-xs font-bold uppercase">
-            <a href="#" className="hover:text-brand">Privacy</a>
-            <a href="#" className="hover:text-brand">Terms</a>
-            <a href="#" className="hover:text-brand">Github</a>
-            <a href="#" className="hover:text-brand">API</a>
+            <Link href="/privacy" className="hover:text-brand">Privacy</Link>
+            <Link href="/terms" className="hover:text-brand">Terms</Link>
+            <a href="https://github.com/ProtoSparkApp/protospark" target="_blank" rel="noopener noreferrer" className="hover:text-brand">Github</a>
+            <a href="https://api.mouser.com/" target="_blank" rel="noopener noreferrer" className="hover:text-brand">API</a>
           </div>
           <div className="text-xs font-mono font-bold text-white/40">©2026 ProtoSpark Hardware Engine</div>
         </div>
