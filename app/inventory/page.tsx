@@ -9,6 +9,16 @@ import { ManualAddForm } from "@/components/inventory/add-form";
 import { ScanModal } from "@/components/inventory/scan-modal";
 import { categoryEnum } from "@/lib/validators";
 import { cn } from "@/lib/utils";
+import { exportInventory } from "@/lib/actions/inventory";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { FileCode, FileSpreadsheet } from "lucide-react";
 
 export default function InventoryPage() {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -16,8 +26,70 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleRefresh = () => setRefreshKey(prev => prev + 1);
+
+  const handleExport = async (format: "csv" | "json") => {
+    setIsExporting(true);
+    try {
+      const data = await exportInventory();
+      
+      if (!data || data.length === 0) {
+        toast.error("No data to export");
+        return;
+      }
+
+      let content = "";
+      let filename = `inventory_export_${new Date().toISOString().split("T")[0]}`;
+
+      if (format === "json") {
+        content = JSON.stringify(data, null, 2);
+        filename += ".json";
+      } else {
+        const headers = Object.keys(data[0]);
+        const csvRows = [
+          headers.join(","),
+          ...data.map(row => 
+            headers.map(fieldName => {
+              const value = (row as any)[fieldName];
+              if (value === null || value === undefined) return "";
+              
+              // Don't export objects/JSON in CSV
+              if (typeof value === "object" && !(value instanceof Date)) return "[DATA]";
+              
+              const stringValue = value instanceof Date ? value.toISOString() : String(value);
+              
+              if (stringValue.includes(",") || stringValue.includes("\"") || stringValue.includes("\n")) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+              }
+              return stringValue;
+            }).join(",")
+          )
+        ];
+        content = csvRows.join("\r\n");
+        filename += ".csv";
+      }
+
+      const blob = new Blob([content], { type: format === "json" ? "application/json" : "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Exported as ${format.toUpperCase()}`);
+      setShowExportDialog(false);
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Failed to export inventory");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -41,6 +113,35 @@ export default function InventoryPage() {
             }}
           />
         )}
+
+        <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Export Data</DialogTitle>
+              <DialogDescription>
+                Choose your preferred format for the inventory export.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <button
+                disabled={isExporting}
+                onClick={() => handleExport("csv")}
+                className="flex flex-col items-center justify-center gap-3 p-6 border-4 border-black bg-white hover:bg-yellow-400 transition-colors group disabled:opacity-50"
+              >
+                <FileSpreadsheet size={40} className="group-hover:scale-110 transition-transform" />
+                <span className="font-black uppercase text-xs">CSV Spreadsheet</span>
+              </button>
+              <button
+                disabled={isExporting}
+                onClick={() => handleExport("json")}
+                className="flex flex-col items-center justify-center gap-3 p-6 border-4 border-black bg-white hover:bg-brand hover:text-white transition-colors group disabled:opacity-50"
+              >
+                <FileCode size={40} className="group-hover:scale-110 transition-transform" />
+                <span className="font-black uppercase text-xs">JSON Objects</span>
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div className="space-y-4">
@@ -142,7 +243,10 @@ export default function InventoryPage() {
               <Download size={24} className="mb-4" />
               <h3 className="font-heading text-xl font-black uppercase leading-tight mb-2">Export Inventory</h3>
               <p className="text-xs font-bold leading-relaxed mb-4">Download your entire stock as CSV or JSON for offline engineering.</p>
-              <Button className="w-full bg-white text-black hover:bg-white/90 border-none rounded-none font-black uppercase text-xs">
+              <Button 
+                onClick={() => setShowExportDialog(true)}
+                className="w-full bg-white text-black hover:bg-white/90 border-none rounded-none font-black uppercase text-xs"
+              >
                 Export Now
               </Button>
             </div>

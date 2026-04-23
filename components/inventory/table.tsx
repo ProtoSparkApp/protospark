@@ -29,6 +29,13 @@ import {
 import { ManualAddForm } from "./add-form"
 import { toast } from "sonner"
 import { useDebounce } from "@/hooks/use-debounce"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function InventoryTable({
   filters,
@@ -332,42 +339,38 @@ export function InventoryTable({
         </div>
       </div>
 
-      <AnimatePresence>
-        {deleteId && (
-          <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white border-4 border-black p-8 shadow-[12px_12px_0px_#000] w-full max-w-sm"
-            >
-              <div className="flex items-center gap-4 mb-6 text-red-600">
-                <AlertTriangle size={40} strokeWidth={3} />
-                <h3 className="text-3xl font-black uppercase tracking-tighter leading-none">Confirm <br />Deletion</h3>
-              </div>
-              <p className="font-mono text-xs font-bold uppercase mb-8 leading-relaxed italic">System Alert: This action will permanently wipe this entry from the secure stock repository. This protocol is non-reversible.</p>
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent className="max-w-sm p-8">
+          <DialogHeader>
+            <div className="flex items-center gap-4 mb-2 text-red-600">
+              <AlertTriangle size={40} strokeWidth={3} />
+              <DialogTitle className="text-3xl">Confirm <br />Deletion</DialogTitle>
+            </div>
+            <DialogDescription className="font-mono text-xs font-bold uppercase leading-relaxed italic">
+              System Alert: This action will permanently wipe this entry from the secure stock repository. This protocol is non-reversible.
+            </DialogDescription>
+          </DialogHeader>
 
-              <div className="flex gap-4">
-                <Button
-                  variant="destructive"
-                  className="flex-1 h-14 text-xs font-black uppercase rounded-none border-2 border-black shadow-[4px_4px_0px_#000]"
-                  onClick={confirmDelete}
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="animate-spin" /> : "Delete Part"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-14 border-2 border-black text-xs font-black uppercase rounded-none"
-                  onClick={() => setDeleteId(null)}
-                  disabled={loading}
-                >
-                  Abort
-                </Button>
-              </div>
-            </motion.div>
+          <div className="flex gap-4 mt-4">
+            <Button
+              variant="destructive"
+              className="flex-1 h-14 text-xs font-black uppercase rounded-none border-2 border-black shadow-[4px_4px_0px_#000]"
+              onClick={confirmDelete}
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="animate-spin" /> : "Delete Part"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-14 border-2 border-black text-xs font-black uppercase rounded-none"
+              onClick={() => setDeleteId(null)}
+              disabled={loading}
+            >
+              Abort
+            </Button>
           </div>
-        )}
+        </DialogContent>
+      </Dialog>
 
         {editItem && (
           <div className="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -380,7 +383,6 @@ export function InventoryTable({
             />
           </div>
         )}
-      </AnimatePresence>
 
       <div className="flex justify-between items-center pt-6">
         <Button

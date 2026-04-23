@@ -167,3 +167,22 @@ export async function deleteComponent(id: string): Promise<InventoryActionRespon
     return { error: "Delete failed" };
   }
 }
+
+export async function exportInventory() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const userId = session.user.id;
+
+  const data = await db.query.components.findMany({
+    where: eq(components.userId, userId),
+    columns: {
+      id: false,
+      userId: false,
+      metadata: false,
+      updatedAt: false,
+    },
+    orderBy: [desc(components.createdAt)],
+  });
+
+  return data;
+}
