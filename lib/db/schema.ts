@@ -167,3 +167,11 @@ export const commentLikes = pgTable("commentLike", {
 }, (cl) => ({
   unq: unique().on(cl.userId, cl.commentId)
 }));
+export const postLikes = pgTable("postLike", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: uuid("postId").notNull().references(() => blogPosts.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (pl) => ({
+  unq: unique().on(pl.userId, pl.postId)
+}));

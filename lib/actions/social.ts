@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { projects, savedProjects, blogPosts, users, components, postComments, commentLikes, type Project } from "@/lib/db/schema";
+import { projects, savedProjects, blogPosts, users, components, postComments, commentLikes, postLikes, type Project } from "@/lib/db/schema";
 import { eq, and, ne, sql, desc, asc, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -147,7 +147,9 @@ export async function getBlogPosts() {
     project: projects,
     author: users,
     isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
-    commentCount: sql<number>`(SELECT count(*) FROM ${postComments} WHERE ${postComments.postId} = "blogPost"."id")`
+    commentCount: sql<number>`(SELECT count(*) FROM ${postComments} WHERE ${postComments.postId} = "blogPost"."id")`,
+    likeCount: sql<number>`(SELECT count(*) FROM ${postLikes} WHERE ${postLikes.postId} = "blogPost"."id")`,
+    isLiked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${postLikes} WHERE ${postLikes.postId} = "blogPost"."id" AND ${postLikes.userId} = ${userId})` : sql<boolean>`FALSE`
   })
     .from(blogPosts)
     .innerJoin(projects, eq(blogPosts.projectId, projects.id))
@@ -400,9 +402,26 @@ export async function getPublicProfile(userId: string) {
     .where(and(eq(projects.userId, userId), eq(projects.isPublic, true)))
     .orderBy(desc(projects.createdAt));
 
+  const userBlogPosts = await db.select({
+    post: blogPosts,
+    project: projects,
+    author: users,
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
+    commentCount: sql<number>`(SELECT count(*) FROM ${postComments} WHERE ${postComments.postId} = "blogPost"."id")`,
+    likeCount: sql<number>`(SELECT count(*) FROM ${postLikes} WHERE ${postLikes.postId} = "blogPost"."id")`,
+    isLiked: currentUserId ? sql<boolean>`EXISTS(SELECT 1 FROM ${postLikes} WHERE ${postLikes.postId} = "blogPost"."id" AND ${postLikes.userId} = ${currentUserId})` : sql<boolean>`FALSE`
+  })
+    .from(blogPosts)
+    .innerJoin(projects, eq(blogPosts.projectId, projects.id))
+    .innerJoin(users, eq(blogPosts.userId, users.id))
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), currentUserId ? eq(savedProjects.userId, currentUserId) : sql`FALSE`))
+    .where(eq(blogPosts.userId, userId))
+    .orderBy(desc(blogPosts.createdAt));
+
   return {
     user,
     projects: publicProjects,
+    blogPosts: userBlogPosts,
     totalProjectCount: Number(totalProjectCount),
   };
 }
@@ -504,6 +523,27 @@ export async function toggleCommentLike(commentId: string) {
       and(
         eq(commentLikes.userId, session.user.id),
         eq(commentLikes.commentId, commentId)
+      )
+    );
+    return { success: true, liked: false };
+  }
+}
+
+export async function togglePostLike(postId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  try {
+    await db.insert(postLikes).values({
+      userId: session.user.id,
+      postId,
+    });
+    return { success: true, liked: true };
+  } catch (error) {
+    await db.delete(postLikes).where(
+      and(
+        eq(postLikes.userId, session.user.id),
+        eq(postLikes.postId, postId)
       )
     );
     return { success: true, liked: false };
