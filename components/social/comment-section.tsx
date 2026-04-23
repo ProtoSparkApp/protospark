@@ -59,7 +59,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
       } else {
         setContent("");
       }
-      setComments(prev => [...prev, {
+      setComments((prev: any[]) => [...prev, {
         comment: result.comment,
         user: sessionUser,
         likeCount: 0,
@@ -75,7 +75,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
     }
 
 
-    setComments(prev => prev.map(item => {
+    setComments((prev: any[]) => prev.map(item => {
       if (item.comment.id === commentId) {
         const isLiked = !item.isLiked;
         return {
@@ -94,7 +94,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
       }
     } catch (error) {
 
-      setComments(prev => prev.map(item => {
+      setComments((prev: any[]) => prev.map(item => {
         if (item.comment.id === commentId) {
           const isLiked = !item.isLiked;
           return {

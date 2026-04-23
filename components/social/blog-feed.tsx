@@ -62,7 +62,7 @@ export function BlogFeed({ posts, sessionUser }: { posts: any[]; sessionUser: an
 }
 
 function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { post: any; sessionUser: any; onProjectClick: (p: any) => void }) {
-  const [post, setPost] = useState(initialPostData);
+  const [post, setPost] = useState<any>(initialPostData);
   const [isLiking, setIsLiking] = useState(false);
 
   const handleLike = async () => {
@@ -75,7 +75,7 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
 
     // Optimistic update
     const wasLiked = post.isLiked;
-    setPost(prev => ({
+    setPost((prev: any) => ({
       ...prev,
       isLiked: !wasLiked,
       likeCount: Number(prev.likeCount) + (wasLiked ? -1 : 1)
@@ -89,7 +89,7 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
       }
     } catch (error) {
       // Revert on error
-      setPost(prev => ({
+      setPost((prev: any) => ({
         ...prev,
         isLiked: wasLiked,
         likeCount: Number(prev.likeCount) + (wasLiked ? 1 : -1)
