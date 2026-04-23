@@ -35,6 +35,7 @@ interface CommunityProjectCardProps {
   canDelete?: boolean;
   onInitialize?: (project: any) => void;
   onDeleted?: (projectId: string) => void;
+  onBookmarkToggle?: (projectId: string, isBookmarked: boolean) => void;
 }
 
 export function CommunityProjectCard({
@@ -45,7 +46,8 @@ export function CommunityProjectCard({
   showInventoryMatch = true,
   canDelete = false,
   onInitialize,
-  onDeleted
+  onDeleted,
+  onBookmarkToggle
 }: CommunityProjectCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
   const [inventoryStatus, setInventoryStatus] = useState<any>(null);
@@ -72,9 +74,11 @@ export function CommunityProjectCard({
       if (res.success === "removed") {
         setIsBookmarked(false);
         toast.success("Removed from archives");
+        if (onBookmarkToggle) onBookmarkToggle(project.id, false);
       } else {
         setIsBookmarked(true);
         toast.success("Saved to archives");
+        if (onBookmarkToggle) onBookmarkToggle(project.id, true);
       }
     } else {
       toast.error(res.error);
@@ -150,9 +154,9 @@ export function CommunityProjectCard({
                 e.stopPropagation();
                 setShowConfirmDelete(true);
               }}
-              className="h-8 w-8 rounded-none border-2 border-black bg-white text-black hover:bg-red-500 hover:text-white transition-all"
+              className="h-10 w-10 rounded-none border-2 border-black bg-white text-black hover:bg-red-500 hover:text-white transition-all"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </Button>
           )}
           <Button

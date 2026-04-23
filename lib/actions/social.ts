@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { projects, savedProjects, blogPosts, users, components, type Project } from "@/lib/db/schema";
-import { eq, and, ne, sql, desc, or, ilike } from "drizzle-orm";
+import { projects, savedProjects, blogPosts, users, components, postComments, commentLikes, type Project } from "@/lib/db/schema";
+import { eq, and, ne, sql, desc, asc, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function toggleProfilePrivacy(isPublic: boolean) {
@@ -22,19 +22,18 @@ export async function getExploreProjects() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = "project"."id")`;
 
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
     saveCount: saveCountSql,
-    isBookmarked: userId
-      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
-      : sql<boolean>`false`
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`
   })
     .from(projects)
     .innerJoin(users, eq(projects.userId, users.id))
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), userId ? eq(savedProjects.userId, userId) : sql`FALSE`))
     .where(
       and(
         eq(projects.isPublic, true),
@@ -51,10 +50,7 @@ export async function bookmarkProject(projectId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Login required" };
 
-  const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
-  if (project?.userId === session.user.id) {
-    return { error: "You cannot bookmark your own project" };
-  }
+  // Removed restriction: users can now bookmark their own projects
 
   try {
     await db.insert(savedProjects).values({
@@ -62,6 +58,8 @@ export async function bookmarkProject(projectId: string) {
       projectId,
     });
     revalidatePath("/projects");
+    revalidatePath("/explore");
+    revalidatePath("/blog");
     return { success: true };
   } catch (error) {
     await db.delete(savedProjects).where(
@@ -71,6 +69,8 @@ export async function bookmarkProject(projectId: string) {
       )
     );
     revalidatePath("/projects");
+    revalidatePath("/explore");
+    revalidatePath("/blog");
     return { success: "removed" };
   }
 }
@@ -146,13 +146,13 @@ export async function getBlogPosts() {
     post: blogPosts,
     project: projects,
     author: users,
-    isBookmarked: userId
-      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
-      : sql<boolean>`false`
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`,
+    commentCount: sql<number>`(SELECT count(*) FROM ${postComments} WHERE ${postComments.postId} = "blogPost"."id")`
   })
     .from(blogPosts)
     .innerJoin(projects, eq(blogPosts.projectId, projects.id))
     .innerJoin(users, eq(blogPosts.userId, users.id))
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), userId ? eq(savedProjects.userId, userId) : sql`FALSE`))
     .where(
       and(
         eq(users.isPublicProfile, true),
@@ -189,7 +189,11 @@ export async function getUserLibrary(params?: {
     mineWhere = and(mineWhere, eq(projects.difficulty, difficulty)) as any;
   }
 
-  const myProjects = await db.select().from(projects)
+  const myProjects = await db.select({
+    project: projects,
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`
+  }).from(projects)
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), eq(savedProjects.userId, session.user.id)))
     .where(mineWhere)
     .orderBy(desc(projects.createdAt))
     .limit(limit)
@@ -223,8 +227,8 @@ export async function getUserLibrary(params?: {
     .where(savedWhere);
 
   return {
-    mine: myProjects,
-    bookmarked: bookmarked.map((b: { project: Project }) => b.project),
+    mine: myProjects.map((p: { project: Project; isBookmarked: unknown }) => ({ ...p.project, isBookmarked: Boolean(p.isBookmarked) })),
+    bookmarked: bookmarked.map((b: { project: Project }) => ({ ...b.project, isBookmarked: true })),
     totalMine: Number(totalMineCount),
     totalBookmarked: Number(totalBookmarkedCount),
   };
@@ -300,7 +304,7 @@ export async function searchUsers(query: string) {
     name: users.name,
     image: users.image,
     bio: users.bio,
-    projectCount: sql<number>`(SELECT count(*) FROM ${projects} WHERE ${projects.userId} = ${users.id} AND ${projects.isPublic} = true)`,
+    projectCount: sql<number>`(SELECT count(*) FROM ${projects} WHERE ${projects.userId} = "user"."id" AND ${projects.isPublic} = true)`,
   })
     .from(users)
     .where(
@@ -319,19 +323,18 @@ export async function searchProjects(query: string) {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = "project"."id")`;
 
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
     saveCount: saveCountSql,
-    isBookmarked: userId
-      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
-      : sql<boolean>`false`
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`
   })
     .from(projects)
     .innerJoin(users, eq(projects.userId, users.id))
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), userId ? eq(savedProjects.userId, userId) : sql`FALSE`))
     .where(
       and(
         eq(projects.isPublic, true),
@@ -352,19 +355,18 @@ export async function getTopProjects() {
   const session = await auth();
   const userId = session?.user?.id;
 
-  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`;
+  const saveCountSql = sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = "project"."id")`;
 
   const results = await db.select({
     project: projects,
     userName: users.name,
     userImage: users.image,
     saveCount: saveCountSql,
-    isBookmarked: userId
-      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${userId})`
-      : sql<boolean>`false`
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`
   })
     .from(projects)
     .innerJoin(users, eq(projects.userId, users.id))
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), userId ? eq(savedProjects.userId, userId) : sql`FALSE`))
     .where(
       and(
         eq(projects.isPublic, true),
@@ -390,12 +392,11 @@ export async function getPublicProfile(userId: string) {
 
   const publicProjects = await db.select({
     project: projects,
-    saveCount: sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id})`,
-    isBookmarked: currentUserId
-      ? sql<boolean>`EXISTS(SELECT 1 FROM ${savedProjects} WHERE ${savedProjects.projectId} = ${projects.id} AND ${savedProjects.userId} = ${currentUserId})`
-      : sql<boolean>`false`
+    saveCount: sql<number>`(SELECT count(*) FROM ${savedProjects} WHERE ${savedProjects.projectId} = "project"."id")`,
+    isBookmarked: sql<boolean>`CASE WHEN ${savedProjects.id} IS NOT NULL THEN TRUE ELSE FALSE END`
   })
     .from(projects)
+    .leftJoin(savedProjects, and(eq(savedProjects.projectId, projects.id), currentUserId ? eq(savedProjects.userId, currentUserId) : sql`FALSE`))
     .where(and(eq(projects.userId, userId), eq(projects.isPublic, true)))
     .orderBy(desc(projects.createdAt));
 
@@ -446,4 +447,65 @@ export async function getTopContributors() {
     .limit(5);
 
   return results;
+}
+
+export async function addComment(postId: string, content: string, parentId?: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  if (!content.trim()) return { error: "Comment cannot be empty" };
+
+  try {
+    const [comment] = await db.insert(postComments).values({
+      userId: session.user.id,
+      postId,
+      content,
+      parentId: parentId || null,
+    }).returning();
+
+    revalidatePath("/blog");
+    return { success: true, comment };
+  } catch (error) {
+    console.error("Failed to add comment:", error);
+    return { error: "Failed to add comment" };
+  }
+}
+
+export async function getComments(postId: string) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  const results = await db.select({
+    comment: postComments,
+    user: users,
+    likeCount: sql<number>`(SELECT count(*) FROM ${commentLikes} WHERE ${commentLikes.commentId} = "postComment"."id")`,
+    isLiked: userId ? sql<boolean>`EXISTS(SELECT 1 FROM ${commentLikes} WHERE ${commentLikes.commentId} = "postComment"."id" AND ${commentLikes.userId} = ${userId})` : sql<boolean>`FALSE`
+  })
+    .from(postComments)
+    .innerJoin(users, eq(postComments.userId, users.id))
+    .where(eq(postComments.postId, postId))
+    .orderBy(asc(postComments.createdAt));
+
+  return results;
+}
+
+export async function toggleCommentLike(commentId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Unauthorized" };
+
+  try {
+    await db.insert(commentLikes).values({
+      userId: session.user.id,
+      commentId,
+    });
+    return { success: true, liked: true };
+  } catch (error) {
+    await db.delete(commentLikes).where(
+      and(
+        eq(commentLikes.userId, session.user.id),
+        eq(commentLikes.commentId, commentId)
+      )
+    );
+    return { success: true, liked: false };
+  }
 }

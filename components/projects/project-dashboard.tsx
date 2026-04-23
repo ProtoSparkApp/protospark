@@ -30,7 +30,7 @@ export function ProjectDashboard({ user }: { user: any }) {
   const [page, setPage] = useState(1);
   const limit = 6;
 
-  useEffect(() => {
+  const fetchLibrary = () => {
     setLoading(true);
     getUserLibrary({
       search: debouncedSearch,
@@ -41,6 +41,10 @@ export function ProjectDashboard({ user }: { user: any }) {
       setLibrary(res as any);
       setLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchLibrary();
   }, [activeTab, debouncedSearch, difficulty, page]);
 
   useEffect(() => {
@@ -221,16 +225,12 @@ export function ProjectDashboard({ user }: { user: any }) {
                         <CommunityProjectCard
                           key={p.id}
                           project={p}
+                          isBookmarked={p.isBookmarked}
                           authorName={user.name}
                           authorImage={user.image}
                           canDelete={true}
                           onDeleted={() => {
-                            getUserLibrary({
-                              search: debouncedSearch,
-                              difficulty,
-                              page,
-                              limit
-                            }).then(res => setLibrary(res as any));
+                            fetchLibrary();
                           }}
                           onInitialize={(project) => setSelectedProject(project)}
                         />
@@ -256,6 +256,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                             project={p}
                             isBookmarked={true}
                             onInitialize={(project) => setSelectedProject(project)}
+                            onBookmarkToggle={fetchLibrary}
                           />
                         ))
                       )}

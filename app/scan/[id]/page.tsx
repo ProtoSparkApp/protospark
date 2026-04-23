@@ -85,7 +85,9 @@ export default function MobileScanPage() {
     const reader = new FileReader()
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string
+      setMode('file')
       handleImageCaptured(dataUrl)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
     reader.readAsDataURL(file)
   }
@@ -93,11 +95,19 @@ export default function MobileScanPage() {
   const handleSubmit = async () => {
     if (!images.step1 || !images.step2) return
     setStatus('processing')
-    await updateScanSession(sessionId, {
-      status: 'processing',
-      step1Image: images.step1,
-      step2Image: images.step2
-    })
+    try {
+      const res = await updateScanSession(sessionId, {
+        status: 'processing',
+        step1Image: images.step1,
+        step2Image: images.step2
+      })
+      if (res.error) {
+        setStatus('error')
+      }
+    } catch (err) {
+      console.error(err)
+      setStatus('error')
+    }
   }
 
   if (status === 'loading') {
@@ -152,83 +162,8 @@ export default function MobileScanPage() {
     )
   }
 
-  if (mode === 'choice') {
-    return (
-      <div className="flex-1 bg-black flex flex-col p-6 text-white justify-center items-center">
-        <div className="mb-12 text-center">
-          <div className="size-20 bg-brand flex items-center justify-center border-4 border-white mb-6 mx-auto rotate-3 shadow-brutal">
-            <Smartphone size={40} className="text-white" />
-          </div>
-          <h1 className="text-4xl font-black uppercase tracking-tighter">ProtoSpark</h1>
-          <p className="font-mono text-[10px] text-brand uppercase font-black">Remote Analysis Terminal</p>
-        </div>
-
-        <div className="w-full flex flex-col gap-4">
-          <button
-            onClick={startCamera}
-            className="w-full aspect-[4/3] bg-zinc-900 border-4 border-white p-6 flex flex-col items-center justify-center gap-4 active:bg-brand transition-colors group shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-none"
-          >
-            <Camera size={48} className="text-brand group-active:text-white" />
-            <div className="text-center">
-              <span className="block text-2xl font-black uppercase italic">Use Camera</span>
-              <span className="text-[10px] font-bold opacity-50 uppercase italic">Take a photo live</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => { setMode('file'); fileInputRef.current?.click(); }}
-            className="w-full bg-brand border-4 border-white p-6 flex flex-col items-center justify-center gap-2 active:bg-black transition-colors group shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-none"
-          >
-            <div className="flex items-center gap-4">
-              <ImageIcon size={32} className="text-white" />
-              <div className="text-left">
-                <span className="block text-xl font-black uppercase italic leading-none">Choose File</span>
-                <span className="text-[10px] font-bold text-black/60 uppercase italic">From device gallery</span>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept="image/*"
-          onChange={handleFileSelect}
-        />
-
-        <div className="mt-12 text-center opacity-40">
-          <p className="font-mono text-[8px] uppercase font-black">Connected to Session: {sessionId.split('-')[0]}...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex-1 bg-black flex flex-col text-white overflow-hidden relative">
-      {mode === 'camera' ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          className="flex-1 object-cover"
-        />
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center bg-zinc-900 p-8">
-          {images[`step${step}` as keyof typeof images] ? (
-            <div className="relative w-full aspect-square border-4 border-brand shadow-brutal">
-              <img src={images[`step${step}` as keyof typeof images]} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-brand/10" />
-            </div>
-          ) : (
-            <div className="text-center">
-              <ImageIcon size={64} className="mx-auto text-brand mb-4 opacity-50" />
-              <p className="font-black uppercase italic text-xl">Waiting for file...</p>
-            </div>
-          )}
-        </div>
-      )}
-
       <input
         type="file"
         ref={fileInputRef}
@@ -237,118 +172,189 @@ export default function MobileScanPage() {
         onChange={handleFileSelect}
       />
 
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-4 left-4 font-mono text-[10px] font-black uppercase bg-black/50 p-2 border border-white/20">
-          Remote Lens Enabled • {mode.toUpperCase()} MODE
-        </div>
-
-        <div className="absolute top-4 right-4 flex gap-2">
-          <div className={`size-6 border-2 flex items-center justify-center font-black ${step === 1 ? 'border-brand bg-brand text-white' : 'border-white/20 text-white/20'}`}>1</div>
-          <div className={`size-6 border-2 flex items-center justify-center font-black ${step === 2 ? 'border-brand bg-brand text-white' : 'border-white/20 text-white/20'}`}>2</div>
-        </div>
-
-        {mode === 'camera' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="size-64 border-2 border-brand/50 border-dashed relative">
-              <div className="absolute -top-1 -left-1 size-4 border-t-4 border-l-4 border-brand" />
-              <div className="absolute -top-1 -right-1 size-4 border-t-4 border-r-4 border-brand" />
-              <div className="absolute -bottom-1 -left-1 size-4 border-b-4 border-l-4 border-brand" />
-              <div className="absolute -bottom-1 -right-1 size-4 border-b-4 border-r-4 border-brand" />
+      {mode === 'choice' ? (
+        <div className="flex-1 flex flex-col p-6 justify-center items-center">
+          <div className="mb-12 text-center">
+            <div className="size-20 bg-brand flex items-center justify-center border-4 border-white mb-6 mx-auto rotate-3 shadow-brutal">
+              <Smartphone size={40} className="text-white" />
             </div>
+            <h1 className="text-4xl font-black uppercase tracking-tighter">ProtoSpark</h1>
+            <p className="font-mono text-[10px] text-brand uppercase font-black">Remote Analysis Terminal</p>
           </div>
-        )}
-      </div>
 
-      <div className="p-8 bg-black/80 backdrop-blur-md border-t-2 border-white/10 flex flex-col items-center gap-6">
-        {step === 1 ? (
-          <>
-            <div className="text-center">
-              <h2 className="text-xl font-black uppercase tracking-tight text-brand">Step 1: Identification</h2>
-              <p className="text-[10px] font-bold text-white/60 uppercase">Take a photo of a single element up close</p>
-            </div>
-            <div className="flex items-center gap-6 w-full justify-center">
-              <button
-                onClick={() => { setMode('file'); fileInputRef.current?.click(); }}
-                className="size-14 rounded-full border-2 border-brand bg-brand/10 text-brand flex items-center justify-center active:scale-95 transition-transform"
-              >
-                <ImageIcon size={28} />
-              </button>
-              {mode === 'camera' ? (
-                <button
-                  onClick={capturePhoto}
-                  className="size-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-95 transition-transform"
-                >
-                  <div className="size-16 bg-white group-active:bg-brand transition-colors" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => setMode('choice')}
-                  className="size-14 rounded-full border-2 border-white/20 text-white/40 flex items-center justify-center active:scale-95 transition-transform"
-                >
-                  <RefreshCw size={24} />
-                </button>
-              )}
-              <div className="size-14" />
-            </div>
-          </>
-        ) : !images.step2 ? (
-          <>
-            <div className="text-center">
-              <h2 className="text-xl font-black uppercase tracking-tight text-brand">Step 2: Counting</h2>
-              <p className="text-[10px] font-bold text-white/60 uppercase">Photo of all elements together</p>
-            </div>
-            <div className="flex items-center gap-8">
-              <button
-                onClick={() => { setStep(1); setImages({}); if (mode === 'file') setMode('choice'); }}
-                className="size-12 rounded-full border-2 border-white/20 flex items-center justify-center"
-              >
-                <RefreshCw size={20} />
-              </button>
-              {mode === 'camera' ? (
-                <button
-                  onClick={capturePhoto}
-                  className="size-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-95 transition-transform"
-                >
-                  <div className="size-16 bg-white group-active:bg-brand transition-colors" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="size-20 rounded-full border-4 border-brand bg-brand/10 text-brand flex items-center justify-center group active:scale-95 transition-transform shadow-brutal"
-                >
-                  <ImageIcon size={40} />
-                </button>
-              )}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="size-12 rounded-full border-2 border-brand bg-brand/10 text-brand flex items-center justify-center"
-              >
-                <ImageIcon size={24} />
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="text-center">
-              <h2 className="text-xl font-black uppercase tracking-tight text-green-400">Scan Complete</h2>
-              <p className="text-[10px] font-bold text-white/60 uppercase">Syncing to development station...</p>
-            </div>
-            <Button
-              size="xl"
-              className="w-full bg-brand text-white font-black uppercase h-16 text-xl shadow-brutal"
-              onClick={handleSubmit}
-            >
-              Transmit Data <Check className="ml-2" strokeWidth={4} />
-            </Button>
+          <div className="w-full flex flex-col gap-4">
             <button
-              onClick={() => { setStep(1); setImages({}); setMode('choice'); stopCamera(); }}
-              className="font-mono text-[10px] uppercase font-black text-white/40"
+              onClick={startCamera}
+              className="w-full aspect-[4/3] bg-zinc-900 border-4 border-white p-6 flex flex-col items-center justify-center gap-4 active:bg-brand transition-colors group shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-none"
             >
-              Retake All
+              <Camera size={48} className="text-brand group-active:text-white" />
+              <div className="text-center">
+                <span className="block text-2xl font-black uppercase italic">Use Camera</span>
+                <span className="text-[10px] font-bold opacity-50 uppercase italic">Take a photo live</span>
+              </div>
             </button>
-          </>
-        )}
-      </div>
+
+            <button
+              onClick={() => setMode('file')}
+              className="w-full bg-brand border-4 border-white p-6 flex flex-col items-center justify-center gap-2 active:bg-black transition-colors group shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              <div className="flex items-center gap-4">
+                <ImageIcon size={32} className="text-white" />
+                <div className="text-left">
+                  <span className="block text-xl font-black uppercase italic leading-none">Choose File</span>
+                  <span className="text-[10px] font-bold text-black/60 uppercase italic">From device gallery</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div className="mt-12 text-center opacity-40">
+            <p className="font-mono text-[8px] uppercase font-black">Connected to Session: {sessionId.split('-')[0]}...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {mode === 'camera' ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="flex-1 object-cover"
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-zinc-900 p-8">
+              {images[`step${step}` as keyof typeof images] ? (
+                <div className="relative w-full aspect-square border-4 border-brand shadow-brutal">
+                  <img src={images[`step${step}` as keyof typeof images]} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-brand/10" />
+                </div>
+              ) : (
+                <div className="text-center">
+                  <ImageIcon size={64} className="mx-auto text-brand mb-4 opacity-50" />
+                  <p className="font-black uppercase italic text-xl">Waiting for file...</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-4 left-4 font-mono text-[10px] font-black uppercase bg-black/50 p-2 border border-white/20">
+              Remote Lens Enabled • {mode.toUpperCase()} MODE
+            </div>
+
+            <div className="absolute top-4 right-4 flex gap-2">
+              <div className={`size-6 border-2 flex items-center justify-center font-black ${step === 1 ? 'border-brand bg-brand text-white' : 'border-white/20 text-white/20'}`}>1</div>
+              <div className={`size-6 border-2 flex items-center justify-center font-black ${step === 2 ? 'border-brand bg-brand text-white' : 'border-white/20 text-white/20'}`}>2</div>
+            </div>
+
+            {mode === 'camera' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="size-64 border-2 border-brand/50 border-dashed relative">
+                  <div className="absolute -top-1 -left-1 size-4 border-t-4 border-l-4 border-brand" />
+                  <div className="absolute -top-1 -right-1 size-4 border-t-4 border-r-4 border-brand" />
+                  <div className="absolute -bottom-1 -left-1 size-4 border-b-4 border-l-4 border-brand" />
+                  <div className="absolute -bottom-1 -right-1 size-4 border-b-4 border-r-4 border-brand" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-8 bg-black/80 backdrop-blur-md border-t-2 border-white/10 flex flex-col items-center gap-6 relative z-10">
+            {step === 1 ? (
+              <>
+                <div className="text-center">
+                  <h2 className="text-xl font-black uppercase tracking-tight text-brand">Step 1: Identification</h2>
+                  <p className="text-[10px] font-bold text-white/60 uppercase">Take a photo of a single element up close</p>
+                </div>
+                <div className="flex items-center gap-6 w-full justify-center">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="size-14 rounded-full border-2 border-brand bg-brand/10 text-brand flex items-center justify-center active:scale-95 transition-transform"
+                  >
+                    <ImageIcon size={28} />
+                  </button>
+                  {mode === 'camera' ? (
+                    <button
+                      onClick={capturePhoto}
+                      className="size-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-95 transition-transform"
+                    >
+                      <div className="size-16 bg-white group-active:bg-brand transition-colors" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setMode('choice')}
+                      className="size-14 rounded-full border-2 border-white/20 text-white/40 flex items-center justify-center active:scale-95 transition-transform"
+                    >
+                      <RefreshCw size={24} />
+                    </button>
+                  )}
+                  <div className="size-14" />
+                </div>
+              </>
+            ) : !images.step2 ? (
+              <>
+                <div className="text-center">
+                  <h2 className="text-xl font-black uppercase tracking-tight text-brand">Step 2: Counting</h2>
+                  <p className="text-[10px] font-bold text-white/60 uppercase">Photo of all elements together</p>
+                </div>
+                <div className="flex items-center gap-8">
+                  <button
+                    onClick={() => { setStep(1); setImages({}); if (mode === 'file') setMode('choice'); }}
+                    className="size-12 rounded-full border-2 border-white/20 flex items-center justify-center"
+                  >
+                    <RefreshCw size={20} />
+                  </button>
+                  {mode === 'camera' ? (
+                    <button
+                      onClick={capturePhoto}
+                      className="size-20 rounded-full border-4 border-white flex items-center justify-center group active:scale-95 transition-transform"
+                    >
+                      <div className="size-16 bg-white group-active:bg-brand transition-colors" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="size-20 rounded-full border-4 border-brand bg-brand/10 text-brand flex items-center justify-center group active:scale-95 transition-transform shadow-brutal"
+                    >
+                      <ImageIcon size={40} />
+                    </button>
+                  )}
+                {mode === 'camera' ? (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="size-12 rounded-full border-2 border-brand bg-brand/10 text-brand flex items-center justify-center"
+                  >
+                    <ImageIcon size={24} />
+                  </button>
+                ) : (
+                  <div className="size-12" />
+                )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <h2 className="text-xl font-black uppercase tracking-tight text-green-400">Scan Complete</h2>
+                  <p className="text-[10px] font-bold text-white/60 uppercase">Syncing to development station...</p>
+                </div>
+                <Button
+                  size="xl"
+                  className="w-full bg-brand text-white font-black uppercase h-16 text-xl shadow-brutal"
+                  onClick={handleSubmit}
+                >
+                  Transmit Data <Check className="ml-2" strokeWidth={4} />
+                </Button>
+                <button
+                  onClick={() => { setStep(1); setImages({}); setMode('choice'); stopCamera(); }}
+                  className="font-mono text-[10px] uppercase font-black text-white/40"
+                >
+                  Retake All
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
