@@ -88,6 +88,32 @@ export async function addComponent(formData: any, force = false): Promise<Invent
       }
     }
 
+    if (!force) {
+      const { levenshteinDistance } = await import("@/lib/utils/string-similarity");
+
+      const similarItems = existingComponents.filter((c: any) => {
+        if (mpn && c.mpn) {
+          const dist = levenshteinDistance(mpn.trim().toLowerCase(), c.mpn.trim().toLowerCase());
+          if (dist > 0 && dist <= 2) return true;
+        }
+
+        const nameDist = levenshteinDistance(genericName.toLowerCase(), c.genericName.toLowerCase());
+        if (nameDist > 0 && nameDist <= 2) {
+          return c.value === value && c.unit === unit;
+        }
+
+        return false;
+      });
+
+      if (similarItems.length > 0) {
+        return {
+          requiresConfirmation: true,
+          similar: similarItems,
+          message: `Found ${similarItems.length} similar item(s) in your inventory. Did you mean one of these?`
+        };
+      }
+    }
+
     await db.insert(components).values({
       userId,
       genericName,
@@ -166,4 +192,23 @@ export async function deleteComponent(id: string): Promise<InventoryActionRespon
   } catch (error) {
     return { error: "Delete failed" };
   }
+}
+
+export async function exportInventory() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const userId = session.user.id;
+
+  const data = await db.query.components.findMany({
+    where: eq(components.userId, userId),
+    columns: {
+      id: false,
+      userId: false,
+      metadata: false,
+      updatedAt: false,
+    },
+    orderBy: [desc(components.createdAt)],
+  });
+
+  return data;
 }
