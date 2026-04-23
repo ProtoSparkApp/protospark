@@ -14,8 +14,9 @@ export async function Header() {
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <MobileMenu />
-          <Link href="/" className="font-heading text-3xl font-black uppercase tracking-tighter italic">
-            Proto<span className="text-brand">Spark</span>
+          <Link href="/" className="flex items-center gap-2 font-heading text-3xl font-black uppercase tracking-tighter italic">
+            <img src="/icon.png" alt="ProtoSpark" className="w-15 h-15" />
+            <span>Proto<span className="text-brand">Spark</span></span>
           </Link>
         </div>
 
