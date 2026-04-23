@@ -15,7 +15,6 @@ export default async function ScanPage() {
     redirect(`/scan/${result.sessionId}`);
   }
 
-  // Fallback if session creation fails
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white">
       <div className="max-w-md w-full border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-red-50">

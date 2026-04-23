@@ -96,9 +96,7 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
-      {/* Header Section */}
       <header className="relative border-b-4 border-black bg-white py-16 md:py-28 overflow-hidden">
-        {/* Background Decorative Elements */}
         <div className="absolute top-0 right-0 w-1/2 h-full opacity-[0.03] pointer-events-none overflow-hidden select-none">
           <div className="text-[20vw] font-black leading-none -mr-20 -mt-10">CORE</div>
         </div>
@@ -175,7 +173,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                     </span>
                   </div>
                 )}
-                {/* Search Decorative Corners */}
                 <div className="absolute -top-1 -right-1 size-3 border-t-2 border-r-2 border-black" />
                 <div className="absolute -bottom-1 -left-1 size-3 border-b-2 border-l-2 border-black" />
               </div>
@@ -184,7 +181,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
       <nav className="sticky top-0 z-40 bg-white border-b-4 border-black shadow-lg">
         <div className="container mx-auto px-4">
           <div className="flex overflow-x-auto no-scrollbar items-center">
@@ -353,10 +349,8 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-12"
             >
-              {/* DISCOVER TAB content */}
               {activeTab === "discover" && (
                 <div className="space-y-32">
-                  {/* Top rated projects Section */}
                   <section className="space-y-12">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-8 border-black pb-8">
                       <div className="space-y-4">
@@ -387,7 +381,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                        {/* Bento Grid Layout - first project featured */}
                         {topProjects.length > 0 && (
                           <>
                             <div className="md:col-span-2 md:row-span-2 relative group">
@@ -432,9 +425,7 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                     )}
                   </section>
 
-                  {/* Featured Engineers Section */}
                   <section className="space-y-16 py-24 bg-black -mx-4 px-8 md:px-12 border-y-[12px] border-brand relative overflow-hidden">
-                    {/* Background Tech Details */}
                     <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
                       style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
@@ -469,7 +460,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                             onClick={() => viewProfile(item.user)}
                             className="group relative border-4 border-white bg-white/5 backdrop-blur-sm p-8 hover:bg-white hover:text-black transition-all cursor-pointer overflow-hidden"
                           >
-                            {/* Tactical scan line */}
                             <motion.div
                               animate={{ y: [0, 200, 0] }}
                               transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
@@ -505,7 +495,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                 </div>
               )}
 
-              {/* BLUEPRINTS TAB content */}
               {activeTab === "projects" && (
                 <div className="space-y-10">
                   <div className="flex items-center justify-between border-b-8 border-black pb-8">
@@ -572,7 +561,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                 </div>
               )}
 
-              {/* ENGINEERS TAB content */}
               {activeTab === "engineers" && (
                 <div className="space-y-10">
                   <div className="flex items-center justify-between">

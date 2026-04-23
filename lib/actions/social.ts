@@ -50,7 +50,6 @@ export async function bookmarkProject(projectId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Login required" };
 
-  // Removed restriction: users can now bookmark their own projects
 
   try {
     await db.insert(savedProjects).values({
@@ -108,7 +107,6 @@ export async function createBlogPost(data: { projectId: string; title: string; c
   const session = await auth();
   if (!session?.user?.id) return { error: "Unauthorized" };
 
-  // Verify ownership and update project to public
   const [project] = await db.select().from(projects).where(
     and(
       eq(projects.id, data.projectId),
@@ -118,7 +116,6 @@ export async function createBlogPost(data: { projectId: string; title: string; c
 
   if (!project) return { error: "Project not found or unauthorized" };
 
-  // Make project public automatically when blogging about it
   await db.update(projects)
     .set({ isPublic: true })
     .where(eq(projects.id, data.projectId));
@@ -134,7 +131,7 @@ export async function createBlogPost(data: { projectId: string; title: string; c
   revalidatePath("/blog");
   revalidatePath("/projects");
   revalidatePath("/explore");
-  
+
   return { success: true, post };
 }
 

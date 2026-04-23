@@ -4,8 +4,7 @@ import { inArray, sql } from "drizzle-orm";
 
 async function syncBlogProjects() {
   console.log("Starting sync...");
-  
-  // Get all project IDs that are in blog posts
+
   const posts = await db.select({ projectId: blogPosts.projectId }).from(blogPosts);
   const projectIds = posts.map(p => p.projectId);
 

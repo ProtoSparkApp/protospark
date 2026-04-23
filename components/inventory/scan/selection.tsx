@@ -26,7 +26,6 @@ export function ScanSelection({ sessionId, mobileLink, onCameraSelect, onGallery
       </div>
 
       <div className="flex-1 grid md:grid-cols-2 bg-zinc-50 divide-y-4 md:divide-y-0 md:divide-x-4 divide-black">
-        {/* Local Device */}
         <div className="p-8 flex flex-col justify-center items-center group relative overflow-hidden transition-colors hover:bg-zinc-100">
           <MonitorSmartphone size={80} strokeWidth={1} className="mb-6 z-10" />
           <h3 className="text-3xl font-black uppercase tracking-tighter mb-4 z-10 relative">Use This Device</h3>
@@ -54,7 +53,6 @@ export function ScanSelection({ sessionId, mobileLink, onCameraSelect, onGallery
           </div>
         </div>
 
-        {/* Remote Device */}
         <div className="p-8 flex flex-col justify-center items-center relative transition-colors hover:bg-zinc-100">
           <div className="flex items-center gap-3 mb-6">
             <Smartphone size={32} />

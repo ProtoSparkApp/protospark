@@ -30,7 +30,6 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
       animate={{ opacity: 1, y: 0 }}
       className="group relative flex flex-col h-full bg-white border-4 border-black shadow-brutal transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[12px_12px_0px_0px_#6c72ff] overflow-hidden"
     >
-      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none overflow-hidden">
         <div className="absolute top-0 right-0 p-2 font-mono text-[40px] font-black leading-none uppercase rotate-90 origin-top-right translate-x-1/2">
           {idea.title.slice(0, 4)}
@@ -53,9 +52,9 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
           </div>
         </div>
         <div className="flex gap-2">
-            <div className="h-10 w-10 rounded-none border-2 border-black bg-neutral-50 flex items-center justify-center opacity-40">
-                <Badge className="bg-transparent text-black border-none shadow-none p-0">AI</Badge>
-            </div>
+          <div className="h-10 w-10 rounded-none border-2 border-black bg-neutral-50 flex items-center justify-center opacity-40">
+            <Badge className="bg-transparent text-black border-none shadow-none p-0">AI</Badge>
+          </div>
         </div>
       </div>
 
@@ -78,10 +77,9 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
 
         <div className="mt-auto space-y-6">
           <div className="border-4 border-black p-4 bg-neutral-50 shadow-none relative overflow-hidden group/progress">
-            {/* Pattern overlay for progress bar section */}
-            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
-                 style={{ backgroundImage: 'linear-gradient(45deg, black 25%, transparent 25%, transparent 50%, black 50%, black 75%, transparent 75%, transparent)' , backgroundSize: '10px 10px'}} />
-             
+            <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
+              style={{ backgroundImage: 'linear-gradient(45deg, black 25%, transparent 25%, transparent 50%, black 50%, black 75%, transparent 75%, transparent)', backgroundSize: '10px 10px' }} />
+
             <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-tight text-black mb-3 relative z-10">
               <div className="flex items-center gap-1.5">
                 <Cpu size={14} className="text-brand" />
@@ -89,7 +87,7 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
               </div>
               <span className="bg-black text-white px-1.5 py-0.5">{idea.partsCountInStock}/{totalParts}</span>
             </div>
-            
+
             <div className="h-5 border-2 border-black bg-white relative overflow-hidden z-10">
               <motion.div
                 initial={{ width: 0 }}
@@ -97,8 +95,7 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
                 className="h-full bg-brand relative"
                 transition={{ duration: 1.5, ease: "easeOut" }}
               >
-                {/* Sheen effect */}
-                <motion.div 
+                <motion.div
                   animate={{ x: ["-100%", "200%"] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute inset-0 bg-white/30 skew-x-12"
@@ -143,7 +140,6 @@ export function ProjectCard({ idea, onSelect }: { idea: ProjectIdea; onSelect: (
         </Button>
       </div>
 
-      {/* Modern Tactical Details */}
       <div className="absolute top-0 right-0 p-1 opacity-20 pointer-events-none select-none">
         <div className="size-4 border-t border-r border-black" />
       </div>

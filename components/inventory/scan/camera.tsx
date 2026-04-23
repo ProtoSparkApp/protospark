@@ -147,7 +147,6 @@ export function ScanCamera({
             </div>
           </div>
 
-          {/* MAIN ACTIONS */}
           <div className="flex-1 flex flex-col items-center md:items-start gap-4">
             <div className="space-y-1 text-center md:text-left">
               <h3 className="font-heading text-xl font-black uppercase leading-none tracking-tighter">

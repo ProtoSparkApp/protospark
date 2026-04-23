@@ -49,11 +49,11 @@ export function BlogFeed({ posts, sessionUser }: { posts: any[]; sessionUser: an
         </div>
       ) : (
         posts.map((post) => (
-          <BlogPostItem 
-            key={post.post.id} 
-            post={post} 
-            sessionUser={sessionUser} 
-            onProjectClick={(project) => setSelectedProject(project)} 
+          <BlogPostItem
+            key={post.post.id}
+            post={post}
+            sessionUser={sessionUser}
+            onProjectClick={(project) => setSelectedProject(project)}
           />
         ))
       )}
@@ -73,7 +73,6 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
 
     if (isLiking) return;
 
-    // Optimistic update
     const wasLiked = post.isLiked;
     setPost((prev: any) => ({
       ...prev,
@@ -88,7 +87,6 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
         throw new Error(result.error);
       }
     } catch (error) {
-      // Revert on error
       setPost((prev: any) => ({
         ...prev,
         isLiked: wasLiked,
@@ -134,8 +132,8 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
               <Layers size={14} /> Attached Blueprint
             </div>
             <div className="max-w-md">
-              <CommunityProjectCard 
-                project={post.project} 
+              <CommunityProjectCard
+                project={post.project}
                 isBookmarked={post.isBookmarked}
                 authorName={post.author.name || "MEMBER"}
                 authorImage={post.author.image || undefined}
@@ -169,10 +167,10 @@ function BlogPostItem({ post: initialPostData, sessionUser, onProjectClick }: { 
               </div>
             </button>
 
-            <CommentSection 
-              postId={post.post.id} 
-              sessionUser={sessionUser} 
-              initialCommentCount={Number(post.commentCount) || 0} 
+            <CommentSection
+              postId={post.post.id}
+              sessionUser={sessionUser}
+              initialCommentCount={Number(post.commentCount) || 0}
             />
           </div>
         </div>

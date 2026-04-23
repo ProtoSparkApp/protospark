@@ -21,8 +21,7 @@ export function getRankByProjectCount(count: number): RankTier {
 export function getRankProgress(count: number) {
   const currentRank = getRankByProjectCount(count);
   const currentRankIndex = RANK_TIERS.findIndex(r => r.name === currentRank.name);
-  
-  // If it's the top rank, progress is 100%
+
   if (currentRankIndex === 0) {
     return {
       current: count,
@@ -34,11 +33,7 @@ export function getRankProgress(count: number) {
 
   const nextRank = RANK_TIERS[currentRankIndex - 1];
   const neededForNext = nextRank.minProjects;
-  
-  // Calculate progress relative to the target
-  // If we just reached a rank, we show at least 10% progress or the actual ratio, 
-  // whichever is higher, to make it feel like we're moving.
-  // Actually, let's just do count / neededForNext as the user suggested for the 1/2 case.
+
   const progress = Math.min(Math.round((count / neededForNext) * 100), 100);
 
   return {

@@ -35,7 +35,7 @@ export default function InventoryPage() {
     setIsExporting(true);
     try {
       const data = await exportInventory();
-      
+
       if (!data || data.length === 0) {
         toast.error("No data to export");
         return;
@@ -51,16 +51,15 @@ export default function InventoryPage() {
         const headers = Object.keys(data[0]);
         const csvRows = [
           headers.join(","),
-          ...data.map(row => 
+          ...data.map((row: any) =>
             headers.map(fieldName => {
               const value = (row as any)[fieldName];
               if (value === null || value === undefined) return "";
-              
-              // Don't export objects/JSON in CSV
+
               if (typeof value === "object" && !(value instanceof Date)) return "[DATA]";
-              
+
               const stringValue = value instanceof Date ? value.toISOString() : String(value);
-              
+
               if (stringValue.includes(",") || stringValue.includes("\"") || stringValue.includes("\n")) {
                 return `"${stringValue.replace(/"/g, '""')}"`;
               }
@@ -80,7 +79,7 @@ export default function InventoryPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success(`Exported as ${format.toUpperCase()}`);
       setShowExportDialog(false);
     } catch (error) {
@@ -107,6 +106,7 @@ export default function InventoryPage() {
 
         {showScanModal && (
           <ScanModal
+            isOpen={showScanModal}
             onClose={() => {
               setShowScanModal(false);
               handleRefresh();
@@ -243,7 +243,7 @@ export default function InventoryPage() {
               <Download size={24} className="mb-4" />
               <h3 className="font-heading text-xl font-black uppercase leading-tight mb-2">Export Inventory</h3>
               <p className="text-xs font-bold leading-relaxed mb-4">Download your entire stock as CSV or JSON for offline engineering.</p>
-              <Button 
+              <Button
                 onClick={() => setShowExportDialog(true)}
                 className="w-full bg-white text-black hover:bg-white/90 border-none rounded-none font-black uppercase text-xs"
               >

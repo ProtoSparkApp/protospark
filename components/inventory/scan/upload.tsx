@@ -34,7 +34,6 @@ export function ScanUpload({
 
   return (
     <div className="flex-1 flex flex-col bg-zinc-50 relative overflow-hidden min-h-[600px]">
-      {/* HEADER */}
       <div className="p-8 border-b-4 border-black bg-white flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">
@@ -46,11 +45,10 @@ export function ScanUpload({
         </div>
       </div>
 
-      {/* MAIN VIEWPORT */}
       <div className="flex-1 p-8 flex flex-col items-center justify-center gap-8">
         {!isComplete ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-            {/* STEP 1 SLOT */}
+
             <div className={cn(
               "aspect-video border-4 border-black bg-white shadow-brutal flex flex-col items-center justify-center relative transition-all",
               step === 1 ? "ring-4 ring-brand ring-offset-4" : "opacity-60"
@@ -66,7 +64,6 @@ export function ScanUpload({
               <div className="absolute top-4 left-4 bg-black text-white px-2 py-1 text-[8px] font-black uppercase">01 // MACRO</div>
             </div>
 
-            {/* STEP 2 SLOT */}
             <div className={cn(
               "aspect-video border-4 border-black bg-white shadow-brutal flex flex-col items-center justify-center relative transition-all",
               step === 2 ? "ring-4 ring-brand ring-offset-4" : "opacity-60"
@@ -104,7 +101,6 @@ export function ScanUpload({
           </div>
         )}
 
-        {/* INSTRUCTIONS */}
         {!isComplete && (
           <div className="text-center max-w-md">
             <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">
