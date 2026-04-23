@@ -26,7 +26,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
 
   useEffect(() => {
     if (!isExpanded) return;
-    
+
     async function loadComments() {
       const data = await getComments(postId);
       setComments(data);
@@ -41,7 +41,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
       toast.error("You must be logged in to comment.");
       return;
     }
-    
+
     const text = parentId ? replyContent : content;
     if (!text.trim()) return;
 
@@ -74,7 +74,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
       return;
     }
 
-    // Optimistic update
+
     setComments(prev => prev.map(item => {
       if (item.comment.id === commentId) {
         const isLiked = !item.isLiked;
@@ -93,7 +93,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
         throw new Error(result.error);
       }
     } catch (error) {
-      // Revert if error
+
       setComments(prev => prev.map(item => {
         if (item.comment.id === commentId) {
           const isLiked = !item.isLiked;
@@ -112,7 +112,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
   const commentTree = useMemo(() => {
     const map = new Map();
     const roots: any[] = [];
-    
+
     comments.forEach(item => {
       map.set(item.comment.id, { ...item, children: [] });
     });
@@ -123,7 +123,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
         if (parent) {
           parent.children.push(map.get(item.comment.id));
         } else {
-          // Fallback if parent missing
+
           roots.push(map.get(item.comment.id));
         }
       } else {
@@ -131,7 +131,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
       }
     });
 
-    // Roots should be newest first (descending)
+
     roots.sort((a, b) => new Date(b.comment.createdAt).getTime() - new Date(a.comment.createdAt).getTime());
     return roots;
   }, [comments]);
@@ -142,7 +142,7 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
         {sessionUser?.image ? <img src={sessionUser.image} className="size-full object-cover" /> : <User size={18} />}
       </div>
       <div className="flex-1 flex gap-2">
-        <Input 
+        <Input
           value={parentId ? replyContent : content}
           onChange={(e) => parentId ? setReplyContent(e.target.value) : setContent(e.target.value)}
           placeholder={parentId ? "WRITE A REPLY..." : "WRITE A COMMENT..."}
@@ -150,8 +150,8 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
           disabled={isLoading}
           autoFocus={!!parentId}
         />
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isLoading || !(parentId ? replyContent.trim() : content.trim())}
           className="border-2 border-black rounded-none shadow-brutal-sm font-black uppercase px-6"
         >
@@ -179,21 +179,21 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
             <p className="font-medium uppercase text-sm text-black/80 break-words mb-4">
               {node.comment.content}
             </p>
-            
+
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => handleLike(node.comment.id)}
                 className={cn(
                   "flex items-center gap-1 font-black uppercase text-[10px] transition-colors hover:text-brand",
                   node.isLiked ? "text-brand" : "text-black/40"
                 )}
               >
-                <Heart size={12} className={node.isLiked ? "fill-brand" : ""} /> 
+                <Heart size={12} className={node.isLiked ? "fill-brand" : ""} />
                 {Number(node.likeCount) || 0}
               </button>
-              
+
               {sessionUser && depth < 3 && (
-                <button 
+                <button
                   onClick={() => setReplyingToId(isReplying ? null : node.comment.id)}
                   className="flex items-center gap-1 font-black uppercase text-[10px] text-black/40 hover:text-brand transition-colors"
                 >
@@ -221,17 +221,17 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
 
   return (
     <div className="w-full">
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors"
       >
-        <MessageSquare size={14} /> 
+        <MessageSquare size={14} />
         Discuss {comments.length > 0 ? `(${comments.length})` : (initialCommentCount > 0 ? `(${initialCommentCount})` : '')}
       </button>
 
       <AnimatePresence>
         {isExpanded && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

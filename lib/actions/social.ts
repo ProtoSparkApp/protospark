@@ -227,7 +227,7 @@ export async function getUserLibrary(params?: {
     .where(savedWhere);
 
   return {
-    mine: myProjects.map(p => ({ ...p.project, isBookmarked: Boolean(p.isBookmarked) })),
+    mine: myProjects.map((p: { project: Project; isBookmarked: unknown }) => ({ ...p.project, isBookmarked: Boolean(p.isBookmarked) })),
     bookmarked: bookmarked.map((b: { project: Project }) => ({ ...b.project, isBookmarked: true })),
     totalMine: Number(totalMineCount),
     totalBookmarked: Number(totalBookmarkedCount),
