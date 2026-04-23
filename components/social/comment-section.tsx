@@ -223,10 +223,16 @@ export function CommentSection({ postId, sessionUser, initialCommentCount }: Com
     <div className="w-full">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors"
+        className="group flex items-center transition-all active:scale-95 text-black"
       >
-        <MessageSquare size={14} />
-        Discuss {comments.length > 0 ? `(${comments.length})` : (initialCommentCount > 0 ? `(${initialCommentCount})` : '')}
+        <div className="flex items-center gap-2 border-2 border-black px-3 py-1 bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] group-hover:shadow-none group-hover:translate-x-[2px] group-hover:translate-y-[2px] transition-all">
+          <MessageSquare size={14} className="text-black/40" />
+          <span className="font-black uppercase text-[10px] tracking-tight">Discuss</span>
+          <div className="w-[2px] h-3 bg-black/10" />
+          <span className="font-black text-[10px]">
+            {comments.length > 0 ? comments.length : (initialCommentCount || 0)}
+          </span>
+        </div>
       </button>
 
       <AnimatePresence>

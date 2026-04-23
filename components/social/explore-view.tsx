@@ -27,6 +27,7 @@ import {
   Filter
 } from "lucide-react";
 import { CommunityProjectCard } from "./community-project-card";
+import { BlogFeed } from "./blog-feed";
 import { ProjectFullGuide } from "@/components/projects/guide-viewer";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,7 @@ import { RankBadge } from "./rank-badge";
 
 type Tab = "discover" | "projects" | "engineers";
 
-export function ExploreView() {
+export function ExploreView({ sessionUser }: { sessionUser?: any }) {
   const [activeTab, setActiveTab] = useState<Tab>("discover");
   const [query, setQuery] = useState("");
   const [projectResults, setProjectResults] = useState<any[]>([]);
@@ -104,18 +105,18 @@ export function ExploreView() {
         <div className="absolute top-0 left-0 p-4 font-mono text-[8px] font-black text-black/20 vertical-writing-rl hidden md:block">
           ARCHIVE_PROTOCOL_V2.0 // EST_2026 // NODE_01
         </div>
-        
+
         <div className="container mx-auto px-4 relative">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-12">
             <div className="space-y-8">
-              <motion.div 
+              <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 className="inline-flex items-center gap-3 px-4 py-2 border-2 border-black bg-brand text-white font-black uppercase text-[12px] tracking-[0.2em] shadow-brutal"
               >
                 <Shield size={14} /> Community Registry
               </motion.div>
-              <motion.h1 
+              <motion.h1
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
@@ -124,7 +125,7 @@ export function ExploreView() {
                 GLOBAL <br />
                 <span className="text-brand relative inline-block">
                   ARCHIVES
-                  <motion.span 
+                  <motion.span
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ delay: 0.5, duration: 0.8 }}
@@ -132,7 +133,7 @@ export function ExploreView() {
                   />
                 </span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
@@ -142,7 +143,7 @@ export function ExploreView() {
               </motion.p>
             </div>
 
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.4 }}
@@ -170,7 +171,7 @@ export function ExploreView() {
                 {activeTab === "discover" && (
                   <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none border-4 border-transparent">
                     <span className="bg-black text-white text-[10px] font-black uppercase px-3 py-1.5 shadow-brutal flex items-center gap-2">
-                       <Filter size={12} /> Select active tab to search
+                      <Filter size={12} /> Select active tab to search
                     </span>
                   </div>
                 )}
@@ -210,7 +211,7 @@ export function ExploreView() {
                 )}
               >
                 {activeTab === tab.id && (
-                  <motion.div 
+                  <motion.div
                     layoutId="tab-underline"
                     className="absolute bottom-0 left-0 right-0 h-1 bg-brand"
                   />
@@ -263,14 +264,14 @@ export function ExploreView() {
                       {profileData.user.bio}
                     </p>
                   )}
-                    <div className="flex flex-wrap items-center gap-6 pt-4 border-t-2 border-black/10 border-dashed w-full md:w-auto">
-                      <div className="flex items-center gap-2 font-black uppercase text-xs">
-                        <Layout size={16} className="text-brand" />
-                        <span className="text-black/40 mr-1">Assets:</span> {profileData?.totalProjectCount || 0} Blueprints
-                      </div>
-                      
-                      <RankBadge projectCount={profileData?.totalProjectCount || 0} />
+                  <div className="flex flex-wrap items-center gap-6 pt-4 border-t-2 border-black/10 border-dashed w-full md:w-auto">
+                    <div className="flex items-center gap-2 font-black uppercase text-xs">
+                      <Layout size={16} className="text-brand" />
+                      <span className="text-black/40 mr-1">Assets:</span> {profileData?.totalProjectCount || 0} Blueprints
                     </div>
+
+                    <RankBadge projectCount={profileData?.totalProjectCount || 0} />
+                  </div>
                 </div>
               </div>
 
@@ -329,6 +330,20 @@ export function ExploreView() {
                   )}
                 </AnimatePresence>
               </div>
+
+              {profileData?.blogPosts && profileData.blogPosts.length > 0 && (
+                <div className="space-y-10 pt-10 border-t-8 border-black">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-2 bg-brand shadow-[2px_2px_0px_#000]" />
+                      <h3 className="text-4xl font-black uppercase tracking-tighter italic">Field Logs</h3>
+                    </div>
+                  </div>
+                  <div className="bg-neutral-50 border-4 border-black p-8 shadow-brutal">
+                    <BlogFeed posts={profileData.blogPosts} sessionUser={sessionUser} />
+                  </div>
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -355,8 +370,8 @@ export function ExploreView() {
                         </div>
                         <p className="font-bold text-xl uppercase text-black/40 tracking-tight">Highest rated engineering transmissions from the network</p>
                       </div>
-                      <Button 
-                        onClick={() => setActiveTab("projects")} 
+                      <Button
+                        onClick={() => setActiveTab("projects")}
                         className="bg-black text-white hover:bg-brand h-16 px-10 rounded-none font-black uppercase tracking-widest text-xs shadow-[8px_8px_0px_#6c72ff] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
                       >
                         Access Full Database <ArrowRight className="ml-2" />
@@ -376,7 +391,7 @@ export function ExploreView() {
                         {topProjects.length > 0 && (
                           <>
                             <div className="md:col-span-2 md:row-span-2 relative group">
-                               <div className="absolute -top-6 -left-6 z-20 size-20 bg-yellow-400 border-4 border-black flex items-center justify-center font-black italic shadow-brutal text-2xl -rotate-12 group-hover:rotate-0 transition-transform">
+                              <div className="absolute -top-6 -left-6 z-20 size-20 bg-yellow-400 border-4 border-black flex items-center justify-center font-black italic shadow-brutal text-2xl -rotate-12 group-hover:rotate-0 transition-transform">
                                 TOP
                               </div>
                               <div className="absolute top-4 right-4 z-20 px-3 py-1 bg-black text-white text-[10px] font-black uppercase shadow-brutal">
@@ -393,7 +408,7 @@ export function ExploreView() {
                                 }}
                               />
                             </div>
-                            
+
                             {topProjects.slice(1, 6).map((p: any, idx: number) => (
                               <div key={p.project.id} className={cn(
                                 "relative group",
@@ -420,9 +435,9 @@ export function ExploreView() {
                   {/* Featured Engineers Section */}
                   <section className="space-y-16 py-24 bg-black -mx-4 px-8 md:px-12 border-y-[12px] border-brand relative overflow-hidden">
                     {/* Background Tech Details */}
-                    <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
-                         style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
-                    
+                    <div className="absolute inset-0 opacity-[0.05] pointer-events-none"
+                      style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+
                     <div className="container mx-auto max-w-7xl">
                       <div className="flex flex-col md:flex-row items-center justify-between mb-20 gap-8 relative z-10">
                         <div className="flex items-center gap-6">
@@ -436,8 +451,8 @@ export function ExploreView() {
                             <p className="text-brand font-black uppercase text-sm tracking-[0.3em] mt-2">Neural network activity detected</p>
                           </div>
                         </div>
-                        <Button 
-                          onClick={() => setActiveTab("engineers")} 
+                        <Button
+                          onClick={() => setActiveTab("engineers")}
                           className="bg-white text-black hover:bg-brand hover:text-white h-16 px-10 rounded-none font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3"
                         >
                           Personnel Directory <ArrowRight size={18} />
@@ -454,8 +469,8 @@ export function ExploreView() {
                             onClick={() => viewProfile(item.user)}
                             className="group relative border-4 border-white bg-white/5 backdrop-blur-sm p-8 hover:bg-white hover:text-black transition-all cursor-pointer overflow-hidden"
                           >
-                             {/* Tactical scan line */}
-                            <motion.div 
+                            {/* Tactical scan line */}
+                            <motion.div
                               animate={{ y: [0, 200, 0] }}
                               transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                               className="absolute inset-x-0 h-[2px] bg-brand/30 z-0 pointer-events-none"
@@ -463,8 +478,8 @@ export function ExploreView() {
 
                             <div className="relative z-10 flex flex-col items-center text-center">
                               <div className="size-24 border-4 border-brand mb-6 bg-black p-1 overflow-hidden shadow-[0_0_15px_rgba(108,114,255,0.3)] group-hover:scale-110 transition-transform">
-                                {item.user.image ? 
-                                  <img src={item.user.image} className="size-full object-cover grayscale group-hover:grayscale-0 transition-all" /> : 
+                                {item.user.image ?
+                                  <img src={item.user.image} className="size-full object-cover grayscale group-hover:grayscale-0 transition-all" /> :
                                   <User size={40} className="m-auto mt-6 text-brand" />
                                 }
                               </div>
@@ -584,9 +599,9 @@ export function ExploreView() {
                             {user.image ? <img src={user.image} className="size-full object-cover" /> : <User size={48} className="m-auto mt-8 text-black/20" />}
                             <div className="absolute inset-0 border-2 border-black/10 group-hover:border-brand/40 transition-colors" />
                           </div>
-                          
+
                           <h4 className="font-black uppercase tracking-tighter text-3xl leading-none mb-3 group-hover:text-brand transition-colors">{user.name}</h4>
-                          
+
                           <div className="flex items-center justify-center gap-3 mb-6">
                             <div className={cn("px-2 py-1 border-2 border-black text-[10px] font-black uppercase shadow-[2px_2px_0px_#000]", getRankByProjectCount(u.projectCount || 0).color)}>
                               {getRankByProjectCount(u.projectCount || 0).name}
@@ -596,7 +611,7 @@ export function ExploreView() {
                               Active
                             </div>
                           </div>
-                          
+
                           {user.bio ? (
                             <p className="text-xs font-bold uppercase text-black/50 line-clamp-2 mb-8 h-8 italic">
                               "{user.bio}"
@@ -604,7 +619,7 @@ export function ExploreView() {
                           ) : (
                             <div className="mb-8 h-8" />
                           )}
-                          
+
                           <Button variant="neo" className="w-full h-12 rounded-none font-black text-xs uppercase group-hover:bg-brand group-hover:text-white transition-colors">
                             Access Archives <ArrowRight className="ml-2" size={16} />
                           </Button>
