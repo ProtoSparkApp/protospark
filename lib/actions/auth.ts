@@ -34,7 +34,7 @@ export async function login(values: any) {
   }
 }
 
-export async function loginWithProvider(provider: "google" | "github") {
+export async function loginWithProvider(provider: "google") {
   await signIn(provider);
 }
 

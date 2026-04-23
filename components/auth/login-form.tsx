@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login, loginWithProvider } from "@/lib/actions/auth"
-import { GithubIcon, GoogleIcon } from "@/components/icons/auth-icons"
+import { GoogleIcon } from "@/components/icons/auth-icons"
 import { Loader2 } from "lucide-react"
 
 export function LoginForm() {
@@ -67,12 +67,9 @@ export function LoginForm() {
           <div className="h-[2px] bg-black/10 flex-1"></div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" className="h-12 border-2 border-black border-b-4 hover:bg-black hover:text-white transition-all active:translate-y-[2px] active:border-b-2" onClick={() => loginWithProvider("google")}>
-            <GoogleIcon className="mr-2" /> Google
-          </Button>
-          <Button variant="outline" className="h-12 border-2 border-black border-b-4 hover:bg-black hover:text-white transition-all active:translate-y-[2px] active:border-b-2" onClick={() => loginWithProvider("github")}>
-            <GithubIcon className="mr-2" /> GitHub
+        <div className="flex justify-center">
+          <Button variant="outline" className="w-full h-12 border-2 border-black border-b-4 hover:bg-black hover:text-white transition-all active:translate-y-[2px] active:border-b-2" onClick={() => loginWithProvider("google")}>
+            <GoogleIcon className="mr-2" /> Continue with Google
           </Button>
         </div>
 
