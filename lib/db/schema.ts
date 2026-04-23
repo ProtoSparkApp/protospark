@@ -9,6 +9,7 @@ import {
   boolean,
   pgEnum,
   unique,
+  AnyPgColumn,
 } from "drizzle-orm/pg-core"
 import type { AdapterAccountType } from "next-auth/adapters"
 import { categoryEnum, unitEnum } from "../validators"
@@ -148,3 +149,21 @@ export const scanSessions = pgTable("scanSession", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
+
+export const postComments = pgTable("postComment", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  postId: uuid("postId").notNull().references(() => blogPosts.id, { onDelete: "cascade" }),
+  parentId: uuid("parentId").references((): AnyPgColumn => postComments.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const commentLikes = pgTable("commentLike", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  commentId: uuid("commentId").notNull().references(() => postComments.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (cl) => ({
+  unq: unique().on(cl.userId, cl.commentId)
+}));

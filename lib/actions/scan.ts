@@ -65,20 +65,30 @@ export async function updateScanSession(id: string, payload: any) {
     let step1Path = payload.step1Image
     let step2Path = payload.step2Image
 
+    const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN
+
     if (payload.step1Image && payload.step1Image.startsWith('data:image')) {
-      const base64Data = payload.step1Image.replace(/^data:image\/\w+;base64,/, "")
-      const buffer = Buffer.from(base64Data, "base64")
-      const filename = `scans/${id}_step1.jpg`
-      const { url } = await put(filename, buffer, { access: 'public' })
-      step1Path = url
+      if (hasBlobToken) {
+        const base64Data = payload.step1Image.replace(/^data:image\/\w+;base64,/, "")
+        const buffer = Buffer.from(base64Data, "base64")
+        const filename = `scans/${id}_step1.jpg`
+        const { url } = await put(filename, buffer, { access: 'public' })
+        step1Path = url
+      } else {
+        step1Path = payload.step1Image
+      }
     }
 
     if (payload.step2Image && payload.step2Image.startsWith('data:image')) {
-      const base64Data = payload.step2Image.replace(/^data:image\/\w+;base64,/, "")
-      const buffer = Buffer.from(base64Data, "base64")
-      const filename = `scans/${id}_step2.jpg`
-      const { url } = await put(filename, buffer, { access: 'public' })
-      step2Path = url
+      if (hasBlobToken) {
+        const base64Data = payload.step2Image.replace(/^data:image\/\w+;base64,/, "")
+        const buffer = Buffer.from(base64Data, "base64")
+        const filename = `scans/${id}_step2.jpg`
+        const { url } = await put(filename, buffer, { access: 'public' })
+        step2Path = url
+      } else {
+        step2Path = payload.step2Image
+      }
     }
 
     await db.update(scanSessions)
@@ -97,6 +107,15 @@ export async function updateScanSession(id: string, payload: any) {
   }
 }
 
+async function getImageBase64(path: string) {
+  if (path.startsWith('data:image')) {
+    return path.replace(/^data:image\/\w+;base64,/, "")
+  }
+  const response = await fetch(path)
+  const buffer = await response.arrayBuffer()
+  return Buffer.from(buffer).toString("base64")
+}
+
 export async function processScan(sessionId: string) {
   const session = await auth()
   if (!session?.user?.id) return { error: "Unauthorized" }
@@ -108,15 +127,11 @@ export async function processScan(sessionId: string) {
 
     if (!scanData || !scanData.step1Image) return { error: "Incomplete data" }
 
-    const response1 = await fetch(scanData.step1Image)
-    const step1Buffer = await response1.arrayBuffer()
-    const step1Base64 = Buffer.from(step1Buffer).toString("base64")
+    const step1Base64 = await getImageBase64(scanData.step1Image)
 
     let step2Base64 = null
     if (scanData.step2Image) {
-      const response2 = await fetch(scanData.step2Image)
-      const step2Buffer = await response2.arrayBuffer()
-      step2Base64 = Buffer.from(step2Buffer).toString("base64")
+      step2Base64 = await getImageBase64(scanData.step2Image)
     }
 
     const existingParts = await db.query.components.findMany({

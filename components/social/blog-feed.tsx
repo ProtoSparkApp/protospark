@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { CommunityProjectCard } from "@/components/social/community-project-card";
-import { MessageSquare, Share2, Terminal, User, Layers } from "lucide-react";
+import { MessageSquare, Terminal, User, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProjectFullGuide } from "@/components/projects/guide-viewer";
+import { CommentSection } from "@/components/social/comment-section";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BlogFeed({ posts, sessionUser }: { posts: any[]; sessionUser: any }) {
@@ -90,12 +91,11 @@ export function BlogFeed({ posts, sessionUser }: { posts: any[]; sessionUser: an
                 </div>
 
                 <div className="flex gap-6 border-t-2 border-black border-dashed pt-6">
-                   <button className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors">
-                     <MessageSquare size={14} /> Discuss
-                   </button>
-                   <button className="flex items-center gap-2 font-black uppercase text-[10px] hover:text-brand transition-colors">
-                     <Share2 size={14} /> Broadcast
-                   </button>
+                   <CommentSection 
+                     postId={post.post.id} 
+                     sessionUser={sessionUser} 
+                     initialCommentCount={Number(post.commentCount) || 0} 
+                   />
                 </div>
               </div>
             </div>

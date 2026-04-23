@@ -35,6 +35,17 @@ export async function GET(
     return NextResponse.redirect(new URL(imageUrl))
   }
 
+  if (imageUrl.startsWith('data:image')) {
+    const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "")
+    const buffer = Buffer.from(base64Data, "base64")
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "private, max-age=3600"
+      }
+    })
+  }
+
   const filepath = path.join(process.cwd(), "uploads", "scans", path.basename(imageUrl))
   if (!fs.existsSync(filepath)) {
     return new NextResponse("Not Found", { status: 404 })
