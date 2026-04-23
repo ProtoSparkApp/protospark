@@ -88,6 +88,32 @@ export async function addComponent(formData: any, force = false): Promise<Invent
       }
     }
 
+    if (!force) {
+      const { levenshteinDistance } = await import("@/lib/utils/string-similarity");
+
+      const similarItems = existingComponents.filter((c: any) => {
+        if (mpn && c.mpn) {
+          const dist = levenshteinDistance(mpn.trim().toLowerCase(), c.mpn.trim().toLowerCase());
+          if (dist > 0 && dist <= 2) return true;
+        }
+
+        const nameDist = levenshteinDistance(genericName.toLowerCase(), c.genericName.toLowerCase());
+        if (nameDist > 0 && nameDist <= 2) {
+          return c.value === value && c.unit === unit;
+        }
+
+        return false;
+      });
+
+      if (similarItems.length > 0) {
+        return {
+          requiresConfirmation: true,
+          similar: similarItems,
+          message: `Found ${similarItems.length} similar item(s) in your inventory. Did you mean one of these?`
+        };
+      }
+    }
+
     await db.insert(components).values({
       userId,
       genericName,
