@@ -1,0 +1,34 @@
+name: ✨ Feature Request
+description: Suggest an idea for ProtoSpark
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We love hearing your ideas for making ProtoSpark better!
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: 🚀 What's your idea?
+      description: A clear and concise description of what you want to happen.
+      placeholder: I wish ProtoSpark could...
+    validations:
+      required: true
+  - type: textarea
+    id: problem-solved
+    attributes:
+      label: 💡 What problem does this solve?
+      description: Describe the pain point you are experiencing.
+      placeholder: Currently, it is difficult to...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🌈 Any alternatives?
+      description: Describe any alternative solutions or features you've considered.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📝 Additional context
+      description: Add any other context or screenshots here.
