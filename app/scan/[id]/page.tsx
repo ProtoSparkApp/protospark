@@ -35,6 +35,13 @@ export default function MobileScanPage() {
 
   const startCamera = async () => {
     setMode('camera')
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("Camera API not supported or not in a secure context.");
+      setStatus('camera_error')
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
@@ -139,9 +146,14 @@ export default function MobileScanPage() {
         </div>
         <h1 className="text-4xl font-black uppercase mb-4 tracking-tighter">Hardware Blocked</h1>
         <p className="font-bold mb-4">Remote Lens requires camera permissions and an <span className="text-brand">HTTPS</span> connection.</p>
-        <Button variant="outline" onClick={startCamera}>
-          GRANT PERMISSION
-        </Button>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={startCamera}>
+            RETRY PERMISSION
+          </Button>
+          <Button variant="neo" className="bg-brand text-white" onClick={() => { setStatus('ready'); setMode('choice') }}>
+            USE FILE UPLOAD
+          </Button>
+        </div>
       </div>
     )
   }

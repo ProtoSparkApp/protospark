@@ -61,6 +61,12 @@ export function ScanModal({ isOpen, onClose, onItemsAdded }: ScanModalProps) {
   }, [])
 
   const startCamera = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("Camera API not supported or not in a secure context.");
+      toast.error("Camera access not supported. Are you on a secure connection (HTTPS)?")
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }

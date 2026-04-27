@@ -213,3 +213,41 @@ export async function deleteProject(projectId: string) {
     return { error: "Failed to delete project" };
   }
 }
+
+export async function fixMermaidDiagram(brokenDiagram: string, errorMessage?: string): Promise<{ success: boolean; diagram?: string; error?: string }> {
+  try {
+    const { object } = await generateObject({
+      model: google("gemini-2.5-flash-lite"),
+      schema: z.object({
+        fixedDiagram: z.string().describe("The corrected Mermaid.js diagram with valid syntax. Do not change the meaning or components."),
+      }),
+      prompt: `The following Mermaid.js diagram has invalid syntax and failed to render. 
+      Please fix the syntax errors so it renders correctly, but DO NOT change its meaning, logical structure, or the components involved.
+      
+      Broken Diagram:
+      ${brokenDiagram}
+
+      ${errorMessage ? `Error Message from Renderer:\n      ${errorMessage}\n` : ""}
+      
+      Guidelines:
+      - Use 'graph LR' or 'graph TD'.
+      - Represent components as descriptive blocks with IDs and quoted labels. Format: NodeID["Label with (Parentheses)"]
+      - CRITICAL: Always wrap node labels in double quotes and square brackets NodeID["Label"] to avoid errors with special characters.
+      - Node IDs should be alphanumeric and single-word.
+      - Every connection must be complete. Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
+      - Use '---' for simple connections or '-->' for directional ones.
+      - STRICTLY FORBIDDEN: Do NOT use the '--|>' syntax. For labeled connections, always use '-->|Label|'.
+      - Do NOT leave trailing dashes at the end of a line.
+      - Do NOT use spaces inside labels of links (use '|Signal|' instead of '| Signal |').
+      - NEVER chain connections like A --> B --> C. ALWAYS split into separate lines.
+      - NEVER end a line with --> or --
+      - NEVER connect to plain text, only nodes`,
+    });
+
+    return { success: true, diagram: object.fixedDiagram };
+  } catch (error) {
+    console.error("AI Diagram Fix Error:", error);
+    return { success: false, error: "Failed to fix diagram." };
+  }
+}
+

@@ -33,6 +33,8 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(safeStyle);
 }
 
+import { fixMermaidDiagram } from "@/lib/actions/projects";
+
 interface MermaidProps {
   chart: string;
   onHide?: () => void;
@@ -42,22 +44,58 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [svgContent, setSvgContent] = useState<string>('');
+  
+  const [currentChart, setCurrentChart] = useState(chart);
+  const [isFixing, setIsFixing] = useState(false);
+  const [fixAttempted, setFixAttempted] = useState(false);
+
+  useEffect(() => {
+    setCurrentChart(chart);
+    setFixAttempted(false);
+    setIsFixing(false);
+  }, [chart]);
 
   useEffect(() => {
     let isMounted = true;
 
     const preprocessChart = (code: string) => {
       if (!code) return "";
-
       let processed = code.trim();
-
       return processed;
     };
 
-    const renderChart = async () => {
-      if (!chart) return;
+    const handleRenderError = async (errorMessage?: string) => {
+      if (!isMounted) return;
+      
+      if (!fixAttempted) {
+        setFixAttempted(true);
+        setIsFixing(true);
+        if (ref.current) {
+          ref.current.innerHTML = '<div class="flex items-center justify-center p-8 text-neutral-400 font-medium">Naprawianie diagramu... (AI Retry)</div>';
+        }
+        
+        try {
+          const res = await fixMermaidDiagram(currentChart, errorMessage);
+          if (res.success && res.diagram && isMounted) {
+            setCurrentChart(res.diagram); // This will re-trigger useEffect to render again
+          } else if (isMounted && onHide) {
+            onHide();
+          }
+        } catch (e) {
+          if (isMounted && onHide) onHide();
+        } finally {
+          if (isMounted) setIsFixing(false);
+        }
+      } else {
+        if (onHide) onHide();
+      }
+    };
 
-      const cleanChart = preprocessChart(chart);
+    const renderChart = async () => {
+      if (!currentChart) return;
+      if (isFixing) return; // Prevent render attempt if we are currently fetching a fix
+
+      const cleanChart = preprocessChart(currentChart);
 
       try {
         if (ref.current) {
@@ -74,14 +112,12 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
           }
 
           if (svg.includes('aria-roledescription="error"') || svg.includes('Syntax error')) {
-            if (onHide) onHide();
+            await handleRenderError("SVG contains Syntax error or aria-roledescription='error'");
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Mermaid Render Error:", error);
-        if (isMounted && onHide) {
-          onHide();
-        }
+        await handleRenderError(error?.message || String(error));
       }
     };
 
@@ -90,7 +126,7 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
     return () => {
       isMounted = false;
     };
-  }, [chart, onHide]);
+  }, [currentChart, fixAttempted, isFixing, onHide]);
 
   return (
     <>
