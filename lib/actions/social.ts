@@ -10,38 +10,44 @@ import { logger } from "@/lib/logger";
 
 
 function _calculateInventoryStatus(requiredComponents: any[], userInventory: any[]) {
+  if (!requiredComponents || requiredComponents.length === 0) {
+    return { status: [], partsCountInStock: 0, partsCountMissing: 0, canBuild: true };
+  }
+
   const normalize = (s: string) => s?.trim().toLowerCase().replace(/\s+/g, '');
 
+  const normalizedInventory = userInventory.map(inv => ({
+    ...inv,
+    normName: normalize(inv.genericName),
+    normValue: normalize(inv.value),
+    normUnit: normalize(inv.unit === 'None' ? '' : inv.unit),
+    normCategory: normalize(inv.category || ""),
+    normMpn: normalize(inv.mpn || ""),
+    fullInv: normalize(inv.genericName) + normalize(inv.value) + normalize(inv.unit === 'None' ? '' : inv.unit) + normalize(inv.category || "") + normalize(inv.mpn || "")
+  }));
+
   const status = (requiredComponents || []).map(req => {
-    const found = userInventory.find((inv: any) => {
-      const invName = normalize(inv.genericName);
-      const invValue = normalize(inv.value);
-      const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
-      const invCategory = normalize(inv.category || "");
-      const invMpn = normalize(inv.mpn || "");
+    const reqName = normalize(req.name);
+    const reqValue = normalize(req.value);
+    const fullReq = reqName + reqValue;
 
-      const reqName = normalize(req.name);
-      const reqValue = normalize(req.value);
-
+    const found = normalizedInventory.find((inv: any) => {
       const baseNameMatch =
-        invName === reqName ||
-        reqName.includes(invName) ||
-        invName.includes(reqName) ||
-        invCategory.includes(reqName) ||
-        reqName.includes(invCategory) ||
-        invMpn.includes(reqName) ||
-        reqName.includes(invMpn);
+        inv.normName === reqName ||
+        reqName.includes(inv.normName) ||
+        inv.normName.includes(reqName) ||
+        inv.normCategory.includes(reqName) ||
+        reqName.includes(inv.normCategory) ||
+        inv.normMpn.includes(reqName) ||
+        reqName.includes(inv.normMpn);
 
       const baseValueMatch =
-        reqValue === invValue ||
-        reqValue === (invValue + invUnit) ||
-        (invValue !== "" && reqValue.includes(invValue)) ||
-        (reqValue !== "" && invValue.includes(reqValue));
+        reqValue === inv.normValue ||
+        reqValue === (inv.normValue + inv.normUnit) ||
+        (inv.normValue !== "" && reqValue.includes(inv.normValue)) ||
+        (reqValue !== "" && inv.normValue.includes(reqValue));
 
-      const fullInv = invName + invValue + invUnit + invCategory + invMpn;
-      const fullReq = reqName + reqValue;
-
-      const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
+      const crossMatch = inv.fullInv.includes(reqName) || fullReq.includes(inv.normName);
 
       return (baseNameMatch && baseValueMatch) || crossMatch;
     });
@@ -78,7 +84,10 @@ export async function toggleProfilePrivacy(isPublic: boolean) {
   return { success: true };
 }
 
-export async function getExploreProjects() {
+export async function getExploreProjects(params?: { page?: number; limit?: number }) {
+  const { page = 1, limit = 12 } = params || {};
+  const offset = (page - 1) * limit;
+
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -101,17 +110,28 @@ export async function getExploreProjects() {
       )
     )
     .orderBy(desc(saveCountSql))
-    .limit(20);
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count: total }] = await db.select({ count: sql<number>`count(*)` })
+    .from(projects)
+    .innerJoin(users, eq(projects.userId, users.id))
+    .where(and(eq(projects.isPublic, true), eq(users.isPublicProfile, true)));
 
   const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
 
-  return results.map((r: any) => ({
-    ...r,
-    project: {
-      ...r.project,
-      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
-    }
-  }));
+  return {
+    data: results.map((r: any) => ({
+      ...r,
+      project: {
+        ...r.project,
+        inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+      }
+    })),
+    total: Number(total),
+    totalPages: Math.ceil(Number(total) / limit),
+    currentPage: page
+  };
 }
 
 export async function bookmarkProject(projectId: string) {
@@ -213,7 +233,10 @@ export async function createBlogPost(data: { projectId: string; title: string; c
   return { success: true, post };
 }
 
-export async function getBlogPosts() {
+export async function getBlogPosts(params?: { page?: number; limit?: number }) {
+  const { page = 1, limit = 10 } = params || {};
+  const offset = (page - 1) * limit;
+
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -236,17 +259,30 @@ export async function getBlogPosts() {
         eq(projects.isPublic, true)
       )
     )
-    .orderBy(desc(blogPosts.createdAt));
+    .orderBy(desc(blogPosts.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count: total }] = await db.select({ count: sql<number>`count(*)` })
+    .from(blogPosts)
+    .innerJoin(projects, eq(blogPosts.projectId, projects.id))
+    .innerJoin(users, eq(blogPosts.userId, users.id))
+    .where(and(eq(users.isPublicProfile, true), eq(projects.isPublic, true)));
 
   const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
 
-  return results.map((r: any) => ({
-    ...r,
-    project: {
-      ...r.project,
-      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
-    }
-  }));
+  return {
+    data: results.map((r: any) => ({
+      ...r,
+      project: {
+        ...r.project,
+        inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+      }
+    })),
+    total: Number(total),
+    totalPages: Math.ceil(Number(total) / limit),
+    currentPage: page
+  };
 }
 
 export async function getUserLibrary(params?: {

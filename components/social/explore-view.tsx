@@ -5,7 +5,7 @@ import {
   searchUsers,
   getExploreFeed,
   getPublicProfile,
-  getTopProjects,
+  getExploreProjects,
   searchProjects
 } from "@/lib/actions/social";
 import { getRankByProjectCount, getRankProgress } from "@/lib/utils/rank";
@@ -25,7 +25,9 @@ import {
   Sparkles,
   TrendingUp,
   Filter,
-  Library
+  Library,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { CommunityProjectCard } from "./community-project-card";
 import { BlogFeed } from "./blog-feed";
@@ -34,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { RankBadge } from "./rank-badge";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const ProjectFullGuide = dynamic(() => import("@/components/projects/guide-viewer").then(mod => mod.ProjectFullGuide), {
   loading: () => <div className="h-96 border-4 border-black animate-pulse bg-neutral-100 flex items-center justify-center font-black uppercase tracking-widest text-black/20">Syncing Guide Protocol...</div>
@@ -44,6 +47,7 @@ type Tab = "blueprints" | "community";
 export function ExploreView({ sessionUser }: { sessionUser?: any }) {
   const [activeTab, setActiveTab] = useState<Tab>("blueprints");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [projectResults, setProjectResults] = useState<any[]>([]);
   const [userResults, setUserResults] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -52,11 +56,18 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
   const [mounted, setMounted] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: topProjectsData = [], isLoading: isLoadingTop } = useQuery({
-    queryKey: ["top-projects"],
-    queryFn: () => getTopProjects(),
+  const { data: exploreData, isLoading: isLoadingExplore } = useQuery({
+    queryKey: ["explore-projects", page],
+    queryFn: () => getExploreProjects({ page, limit: 12 }),
     staleTime: 5 * 60 * 1000,
   });
+
+  const topProjectsData = exploreData?.data || [];
+  const pagination = {
+    total: exploreData?.total || 0,
+    totalPages: exploreData?.totalPages || 1,
+    currentPage: exploreData?.currentPage || 1
+  };
 
   const { data: trendingEngineersData = [], isLoading: isLoadingTrending } = useQuery({
     queryKey: ["explore-feed"],
@@ -64,26 +75,29 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  const loading = isLoadingTop || isLoadingTrending;
+  const loading = isLoadingExplore || isLoadingTrending;
+
+  const debouncedQuery = useDebounce(query, 500);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handleSearch = async (val: string) => {
-    setQuery(val);
-    if (val.length > 2) {
+    if (debouncedQuery.length > 2) {
       if (activeTab === "blueprints") {
-        const results = await searchProjects(val);
-        setProjectResults(results);
+        searchProjects(debouncedQuery).then(setProjectResults);
       } else if (activeTab === "community") {
-        const results = await searchUsers(val);
-        setUserResults(results);
+        searchUsers(debouncedQuery).then(setUserResults);
       }
     } else {
       setProjectResults([]);
       setUserResults([]);
     }
+  }, [debouncedQuery, activeTab]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSearchChange = (val: string) => {
+    setQuery(val);
   };
 
   const clearProfile = () => {
@@ -144,13 +158,13 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                     <Input
                       placeholder={activeTab === "blueprints" ? "SEARCH BLUEPRINTS..." : "SEARCH COMMUNITY..."}
                       value={query}
-                      onChange={(e) => handleSearch(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-10 border-2 border-black rounded-none h-12 font-bold focus-visible:ring-0 focus-visible:border-brand transition-colors"
                     />
                   </div>
                 </motion.div>
               )}
-              
+
               <div className="flex w-fit md:ml-auto bg-white p-1.5 border-4 border-black shadow-brutal relative">
                 {[
                   { id: "blueprints", label: "Blueprints", icon: Library },
@@ -362,7 +376,7 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {topProjectsData.map((p: any) => (
                           <CommunityProjectCard
@@ -378,10 +392,48 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                           />
                         ))}
                       </div>
-                      <div className="bg-neutral-100 border-4 border-black p-8 text-center">
+
+                      {pagination.totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-4 pt-8 border-t-4 border-black mt-8">
+                          <Button
+                            variant="neo"
+                            disabled={page <= 1}
+                            onClick={() => setPage(page - 1)}
+                            className="size-12 p-0 border-4 border-black"
+                          >
+                            <ChevronLeft />
+                          </Button>
+
+                          <div className="flex items-center gap-2">
+                            {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => i + 1).map((p) => (
+                              <Button
+                                key={p}
+                                variant={page === p ? "neo" : "ghost"}
+                                onClick={() => setPage(p)}
+                                className={`size-12 border-4 border-black font-black ${page === p ? "bg-brand text-white" : "bg-white"
+                                  }`}
+                              >
+                                {p}
+                              </Button>
+                            ))}
+                            {pagination.totalPages > 5 && <span className="font-black">...</span>}
+                          </div>
+
+                          <Button
+                            variant="neo"
+                            disabled={page >= pagination.totalPages}
+                            onClick={() => setPage(page + 1)}
+                            className="size-12 p-0 border-4 border-black"
+                          >
+                            <ChevronRight />
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="bg-neutral-100 border-4 border-black p-8 text-center mt-12">
                         <p className="font-black uppercase tracking-widest text-sm">Use the search protocol to scan more blueprints</p>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               )}
@@ -422,10 +474,6 @@ export function ExploreView({ sessionUser }: { sessionUser?: any }) {
                           <div className="flex items-center justify-center gap-3 mb-6">
                             <div className={cn("px-2 py-1 border-2 border-black text-[10px] font-black uppercase shadow-[2px_2px_0px_#000]", getRankByProjectCount(u.projectCount || 0).color)}>
                               {getRankByProjectCount(u.projectCount || 0).name}
-                            </div>
-                            <div className="px-2 py-1 border-2 border-black bg-green-400 text-[10px] font-black uppercase shadow-[2px_2px_0px_#000] flex items-center gap-1">
-                              <div className="size-1.5 bg-black rounded-full animate-pulse" />
-                              Active
                             </div>
                           </div>
 

@@ -2,8 +2,18 @@ import { auth } from "@/auth";
 import { getBlogPosts, getTopContributors } from "@/lib/actions/social";
 import { BlogClient } from "@/components/social/blog-client";
 
-export default async function BlogPage() {
-  const posts = await getBlogPosts();
+export default async function BlogPage(props: {
+  searchParams: Promise<{ page?: string; search?: string; difficulty?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const page = Number(searchParams.page) || 1;
+  const limit = 10;
+  
+  const { data: posts, total, totalPages, currentPage } = await getBlogPosts({ 
+    page, 
+    limit 
+  });
+  
   const topContributors = await getTopContributors();
   const session = await auth();
 
@@ -26,6 +36,11 @@ export default async function BlogPage() {
           initialPosts={posts} 
           sessionUser={session?.user} 
           topContributors={topContributors}
+          pagination={{
+            total,
+            totalPages,
+            currentPage
+          }}
         />
       </main>
     </div>

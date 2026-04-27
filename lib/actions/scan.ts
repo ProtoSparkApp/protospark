@@ -48,11 +48,18 @@ export async function createScanSession() {
 
 export async function getScanSession(id: string) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
     const data = await db.query.scanSessions.findFirst({
       where: eq(scanSessions.id, id)
     })
 
     if (!data) return { error: "Session not found" }
+
+    if (data.status !== "awaiting" && data.status !== "scanning" && data.userId !== userId) {
+      return { error: "Unauthorized access to this session" }
+    }
 
     return { success: true, data }
   } catch (error) {
@@ -62,6 +69,19 @@ export async function getScanSession(id: string) {
 
 export async function updateScanSession(id: string, payload: any) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    const existing = await db.query.scanSessions.findFirst({
+      where: eq(scanSessions.id, id)
+    });
+
+    if (!existing) return { error: "Session not found" };
+
+    if (existing.userId !== userId && existing.status !== "awaiting" && existing.status !== "scanning") {
+      return { error: "Unauthorized update" };
+    }
+
     let step1Path = payload.step1Image
     let step2Path = payload.step2Image
 
@@ -71,11 +91,10 @@ export async function updateScanSession(id: string, payload: any) {
       if (hasBlobToken) {
         const base64Data = payload.step1Image.replace(/^data:image\/\w+;base64,/, "")
         const buffer = Buffer.from(base64Data, "base64")
+
         const filename = `scans/${id}_step1.jpg`
         const { url } = await put(filename, buffer, { access: 'public' })
         step1Path = url
-      } else {
-        step1Path = payload.step1Image
       }
     }
 
@@ -83,11 +102,12 @@ export async function updateScanSession(id: string, payload: any) {
       if (hasBlobToken) {
         const base64Data = payload.step2Image.replace(/^data:image\/\w+;base64,/, "")
         const buffer = Buffer.from(base64Data, "base64")
+
+        if (buffer.length < 5000) return { error: "Image too small" };
+
         const filename = `scans/${id}_step2.jpg`
         const { url } = await put(filename, buffer, { access: 'public' })
         step2Path = url
-      } else {
-        step2Path = payload.step2Image
       }
     }
 

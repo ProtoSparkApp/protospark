@@ -1,20 +1,38 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { users, projects, type Project } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { User, Shield, ShieldOff, Settings, Sparkles, Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RankBadge } from "@/components/social/rank-badge";
 import { toggleProfilePrivacy } from "@/lib/actions/social";
 import { revalidatePath } from "next/cache";
 
-export default async function ProfilePage() {
+export default async function ProfilePage(props: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const searchParams = await props.searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  const page = Number(searchParams.page) || 1;
+  const limit = 5;
+  const offset = (page - 1) * limit;
+
   const [user] = await db.select().from(users).where(eq(users.id, session.user.id));
-  const myProjects = await db.select().from(projects).where(eq(projects.userId, session.user.id)).orderBy(desc(projects.createdAt));
+  const myProjects = await db.select().from(projects)
+    .where(eq(projects.userId, session.user.id))
+    .orderBy(desc(projects.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ count: total }] = await db.select({ count: sql<number>`count(*)` })
+    .from(projects)
+    .where(eq(projects.userId, session.user.id));
+
+  const totalPages = Math.ceil(Number(total) / limit);
 
   async function updateProfile(formData: FormData) {
     "use server";
@@ -54,9 +72,9 @@ export default async function ProfilePage() {
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 border-2 border-black bg-white font-black uppercase text-[10px]">
                   <Layout size={12} />
-                  {myProjects.length} Projects
+                  {Number(total)} Projects
                 </div>
-                <RankBadge projectCount={myProjects.length} className="ml-2" />
+                <RankBadge projectCount={Number(total)} className="ml-2" />
               </div>
             </div>
           </div>
@@ -109,23 +127,52 @@ export default async function ProfilePage() {
           </div>
 
           <div className="space-y-6">
-            {myProjects.map((p: Project) => (
-              <div key={p.id} className="border-4 border-black bg-white p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="size-12 border-2 border-black bg-neutral-100 flex items-center justify-center shrink-0">
-                    <Layout size={20} />
+            {myProjects.length > 0 ? (
+              <>
+                {myProjects.map((p: Project) => (
+                  <div key={p.id} className="border-4 border-black bg-white p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="size-12 border-2 border-black bg-neutral-100 flex items-center justify-center shrink-0">
+                        <Layout size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-black uppercase italic leading-none">{p.title}</h4>
+                        <span className="text-[10px] font-mono text-black/40 uppercase font-bold">Created {p.createdAt.toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`size-3 rounded-full border-2 border-black ${p.isPublic ? "bg-green-400" : "bg-neutral-200"}`} />
+                      <span className="text-[10px] font-black uppercase tracking-tighter">{p.isPublic ? "Public" : "Draft"}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-black uppercase italic leading-none">{p.title}</h4>
-                    <span className="text-[10px] font-mono text-black/40 uppercase font-bold">Created {p.createdAt.toLocaleDateString()}</span>
+                ))}
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-4 pt-8">
+                    <Button
+                      variant="outline"
+                      disabled={page <= 1}
+                      asChild
+                    >
+                      <Link href={`?page=${page - 1}`}>Back</Link>
+                    </Button>
+                    <span className="font-black uppercase text-xs">Page {page} / {totalPages}</span>
+                    <Button
+                      variant="outline"
+                      disabled={page >= totalPages}
+                      asChild
+                    >
+                      <Link href={`?page=${page + 1}`}>Next</Link>
+                    </Button>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`size-3 rounded-full border-2 border-black ${p.isPublic ? "bg-green-400" : "bg-neutral-200"}`} />
-                  <span className="text-[10px] font-black uppercase tracking-tighter">{p.isPublic ? "Public" : "Draft"}</span>
-                </div>
+                )}
+              </>
+            ) : (
+              <div className="border-4 border-black border-dashed p-12 text-center bg-white opacity-20">
+                <Layout size={48} className="mx-auto mb-4" />
+                <p className="font-black uppercase italic">No activities recorded</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </main>

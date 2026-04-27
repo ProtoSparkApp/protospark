@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { components } from "@/lib/db/schema";
 import { componentSchema } from "@/lib/validators";
-import { eq, and, desc, sql, like } from "drizzle-orm";
+import { eq, and, or, desc, sql, like } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { findSimilarStrings } from "@/lib/utils/string-similarity";
 
@@ -55,17 +55,23 @@ export async function addComponent(formData: any, force = false): Promise<Invent
   const { genericName, mpn, manufacturer, category, value, unit, quantity, metadata, description } = validated.data;
 
   try {
-    const existingComponents = await db.query.components.findMany({
-      where: eq(components.userId, userId),
-    });
+    const duplicateQuery = mpn
+      ? or(
+        eq(components.mpn, mpn),
+        and(
+          eq(components.genericName, genericName),
+          eq(components.value, value),
+          eq(components.unit, unit)
+        )
+      )
+      : and(
+        eq(components.genericName, genericName),
+        eq(components.value, value),
+        eq(components.unit, unit)
+      );
 
-    const duplicate = existingComponents.find((c: any) => {
-      if (mpn && c.mpn && mpn.trim().toLowerCase() === c.mpn.trim().toLowerCase()) {
-        return true;
-      }
-      return c.genericName.toLowerCase() === genericName.toLowerCase() &&
-        c.value === value &&
-        c.unit === unit;
+    const duplicate = await db.query.components.findFirst({
+      where: and(eq(components.userId, userId), duplicateQuery)
     });
 
     if (duplicate) {
@@ -91,7 +97,15 @@ export async function addComponent(formData: any, force = false): Promise<Invent
     if (!force) {
       const { levenshteinDistance } = await import("@/lib/utils/string-similarity");
 
-      const similarItems = existingComponents.filter((c: any) => {
+      const searchPool = await db.query.components.findMany({
+        where: and(
+          eq(components.userId, userId),
+          eq(components.category, category)
+        ),
+        limit: 50
+      });
+
+      const similarItems = searchPool.filter((c: any) => {
         if (mpn && c.mpn) {
           const dist = levenshteinDistance(mpn.trim().toLowerCase(), c.mpn.trim().toLowerCase());
           if (dist > 0 && dist <= 2) return true;
@@ -109,7 +123,7 @@ export async function addComponent(formData: any, force = false): Promise<Invent
         return {
           requiresConfirmation: true,
           similar: similarItems,
-          message: `Found ${similarItems.length} similar item(s) in your inventory. Did you mean one of these?`
+          message: `Found ${similarItems.length} similar item(s) in your category. Did you mean one of these?`
         };
       }
     }

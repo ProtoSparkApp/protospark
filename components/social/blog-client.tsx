@@ -1,44 +1,95 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BlogFeed } from "@/components/social/blog-feed";
-import { User, Filter, X, Search } from "lucide-react";
+import { User, Filter, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface BlogClientProps {
   initialPosts: any[];
   sessionUser?: any;
   topContributors?: any[];
+  pagination: {
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  };
 }
 
-export function BlogClient({ initialPosts, sessionUser, topContributors = [] }: BlogClientProps) {
-  const [search, setSearch] = useState("");
-  const [difficulty, setDifficulty] = useState<string | null>(null);
-  
+export function BlogClient({ initialPosts, sessionUser, topContributors = [], pagination }: BlogClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [difficulty, setDifficulty] = useState<string | null>(searchParams.get("difficulty") || null);
+
   const debouncedSearch = useDebounce(search, 300);
 
-  const filteredPosts = useMemo(() => {
-    return initialPosts.filter((p) => {
-      const matchesSearch = 
-        p.post.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        p.post.content.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        p.project.title.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
-      const matchesDifficulty = !difficulty || p.project.difficulty === difficulty;
-      
-      return matchesSearch && matchesDifficulty;
-    });
-  }, [initialPosts, debouncedSearch, difficulty]);
+  useEffect(() => {
+    updateFilters(debouncedSearch, difficulty);
+  }, [debouncedSearch]);
+
+  const updateFilters = (newSearch?: string, newDifficulty?: string | null, page = 1) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newSearch !== undefined) {
+      if (newSearch) params.set("search", newSearch);
+      else params.delete("search");
+    }
+    if (newDifficulty !== undefined) {
+      if (newDifficulty) params.set("difficulty", newDifficulty);
+      else params.delete("difficulty");
+    }
+    params.set("page", page.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   const difficulties = ["Beginner", "Intermediate", "Advanced"];
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-8 w-full">
-        {filteredPosts.length > 0 ? (
-          <BlogFeed posts={filteredPosts} sessionUser={sessionUser} />
+      <div className="lg:col-span-8 w-full space-y-8">
+        {initialPosts.length > 0 ? (
+          <>
+            <BlogFeed posts={initialPosts} sessionUser={sessionUser} />
+
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 pt-8 border-t-4 border-black">
+                <Button
+                  variant="neo"
+                  disabled={pagination.currentPage <= 1}
+                  onClick={() => updateFilters(undefined, undefined, pagination.currentPage - 1)}
+                  className="size-12 p-0 border-4 border-black"
+                >
+                  <ChevronLeft />
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
+                    <Button
+                      key={p}
+                      variant={pagination.currentPage === p ? "neo" : "ghost"}
+                      onClick={() => updateFilters(undefined, undefined, p)}
+                      className={`size-12 border-4 border-black font-black ${pagination.currentPage === p ? "bg-brand text-white" : "bg-white"
+                        }`}
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="neo"
+                  disabled={pagination.currentPage >= pagination.totalPages}
+                  onClick={() => updateFilters(undefined, undefined, pagination.currentPage + 1)}
+                  className="size-12 p-0 border-4 border-black"
+                >
+                  <ChevronRight />
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="p-20 border-4 border-black border-dashed text-center bg-white">
             <Search size={48} className="mx-auto mb-4 text-black/20" />
@@ -63,11 +114,14 @@ export function BlogClient({ initialPosts, sessionUser, topContributors = [] }: 
                   placeholder="Title or content..."
                   className="h-10 text-xs pl-9 pr-8 border-2 border-black rounded-none font-bold focus-visible:ring-0 focus-visible:border-brand"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && updateFilters(search)}
                 />
                 {search && (
                   <button
-                    onClick={() => setSearch("")}
+                    onClick={() => { setSearch(""); updateFilters(""); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-black/20 hover:text-black transition-colors"
                   >
                     <X size={14} />
@@ -82,12 +136,15 @@ export function BlogClient({ initialPosts, sessionUser, topContributors = [] }: 
                 {difficulties.map(diff => (
                   <button
                     key={diff}
-                    onClick={() => setDifficulty(difficulty === diff ? null : diff)}
-                    className={`border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase transition-all ${
-                      difficulty === diff
+                    onClick={() => {
+                      const next = difficulty === diff ? null : diff;
+                      setDifficulty(next);
+                      updateFilters(undefined, next);
+                    }}
+                    className={`border-2 border-black px-3 py-1.5 text-[10px] font-black uppercase transition-all ${difficulty === diff
                         ? "bg-brand text-white shadow-[4px_4px_0px_#000] -translate-x-1 -translate-y-1"
                         : "bg-white hover:bg-neutral-50 shadow-[2px_2px_0px_#000] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
-                    }`}
+                      }`}
                   >
                     {diff}
                   </button>
@@ -98,7 +155,7 @@ export function BlogClient({ initialPosts, sessionUser, topContributors = [] }: 
             {(search || difficulty) && (
               <Button
                 variant="ghost"
-                onClick={() => { setSearch(""); setDifficulty(null); }}
+                onClick={() => { setSearch(""); setDifficulty(null); updateFilters("", null); }}
                 className="w-full h-10 border-2 border-black rounded-none font-black uppercase text-[10px] hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 Clear Matrix Filters
