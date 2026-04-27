@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { projects, savedProjects, blogPosts, users, components, postComments, commentLikes, postLikes, type Project } from "@/lib/db/schema";
 import { eq, and, ne, sql, desc, asc, or, ilike } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { logger } from "@/lib/logger";
+
 
 export async function toggleProfilePrivacy(isPublic: boolean) {
   const session = await auth();
@@ -52,10 +54,12 @@ export async function bookmarkProject(projectId: string) {
 
 
   try {
+    logger.info("SocialAction", "Bookmarking project", { userId: session.user.id, projectId });
     await db.insert(savedProjects).values({
       userId: session.user.id,
       projectId,
     });
+
     revalidatePath("/projects");
     revalidatePath("/explore");
     revalidatePath("/blog");
@@ -67,7 +71,9 @@ export async function bookmarkProject(projectId: string) {
         eq(savedProjects.projectId, projectId)
       )
     );
+    logger.info("SocialAction", "Removed bookmark", { userId: session.user.id, projectId });
     revalidatePath("/projects");
+
     revalidatePath("/explore");
     revalidatePath("/blog");
     return { success: "removed" };
@@ -85,7 +91,10 @@ export async function cloneProject(projectId: string) {
     return { error: "You cannot clone your own project" };
   }
 
+  logger.info("SocialAction", "Cloning project", { userId: session.user.id, originalProjectId: projectId });
+
   const [cloned] = await db.insert(projects).values({
+
     userId: session.user.id,
     title: `${original.title} (Clone)`,
     description: original.description,
@@ -116,7 +125,10 @@ export async function createBlogPost(data: { projectId: string; title: string; c
 
   if (!project) return { error: "Project not found or unauthorized" };
 
+  logger.info("SocialAction", "Creating blog post", { userId: session.user.id, data });
+
   await db.update(projects)
+
     .set({ isPublic: true })
     .where(eq(projects.id, data.projectId));
 
@@ -169,8 +181,8 @@ export async function getUserLibrary(params?: {
   page?: number;
   limit?: number;
 }): Promise<{
-  mine: Project[];
-  bookmarked: Project[];
+  mine: any[];
+  bookmarked: any[];
   totalMine: number;
   totalBookmarked: number;
 } | { error: string }> {
@@ -225,9 +237,75 @@ export async function getUserLibrary(params?: {
     .innerJoin(projects, eq(savedProjects.projectId, projects.id))
     .where(savedWhere);
 
+  const userInventory = await db.select().from(components).where(eq(components.userId, session.user.id));
+  const normalize = (s: string) => s?.trim().toLowerCase().replace(/\s+/g, '');
+
+  const checkInventory = (requiredComponents: any[]) => {
+    const status = (requiredComponents || []).map(req => {
+      const found = userInventory.find((inv: any) => {
+        const invName = normalize(inv.genericName);
+        const invValue = normalize(inv.value);
+        const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
+        const invCategory = normalize(inv.category || "");
+        const invMpn = normalize(inv.mpn || "");
+
+        const reqName = normalize(req.name);
+        const reqValue = normalize(req.value);
+
+        const baseNameMatch =
+          invName === reqName ||
+          reqName.includes(invName) ||
+          invName.includes(reqName) ||
+          invCategory.includes(reqName) ||
+          reqName.includes(invCategory) ||
+          invMpn.includes(reqName) ||
+          reqName.includes(invMpn);
+
+        const baseValueMatch =
+          reqValue === invValue ||
+          reqValue === (invValue + invUnit) ||
+          (invValue !== "" && reqValue.includes(invValue)) ||
+          (reqValue !== "" && invValue.includes(reqValue));
+
+        const fullInv = invName + invValue + invUnit + invCategory + invMpn;
+        const fullReq = reqName + reqValue;
+
+        const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
+
+        return (baseNameMatch && baseValueMatch) || crossMatch;
+      });
+
+      const hasEnough = found ? found.quantity >= req.quantity : false;
+
+      return {
+        ...req,
+        inventoryQuantity: found?.quantity || 0,
+        status: hasEnough ? "In Stock" : "Need to Buy"
+      };
+    });
+
+    const partsCountInStock = status.filter(s => s.status === "In Stock").length;
+    const partsCountMissing = status.length - partsCountInStock;
+
+    return {
+      status,
+      partsCountInStock,
+      partsCountMissing,
+      canBuild: partsCountMissing === 0
+    };
+  };
+
   return {
-    mine: myProjects.map((p: { project: Project; isBookmarked: unknown }) => ({ ...p.project, isBookmarked: Boolean(p.isBookmarked) })),
-    bookmarked: bookmarked.map((b: { project: Project }) => ({ ...b.project, isBookmarked: true })),
+    mine: myProjects.map((p: { project: Project; isBookmarked: unknown }) => ({
+      ...p.project,
+      isBookmarked: Boolean(p.isBookmarked),
+      inventoryStatus: checkInventory(p.project.requiredComponents as any[])
+    })),
+    bookmarked: bookmarked.map((b: { project: Project }) => ({
+      ...b.project,
+      isBookmarked: true,
+      inventoryStatus: checkInventory(b.project.requiredComponents as any[])
+    })),
     totalMine: Number(totalMineCount),
     totalBookmarked: Number(totalBookmarkedCount),
   };

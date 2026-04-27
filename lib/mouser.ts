@@ -1,4 +1,7 @@
+import { logger } from "./logger";
+
 const MOUSER_API_URL = "https://api.mouser.com/api/v2";
+
 const API_KEY = process.env.MOUSER_SECRET;
 
 export async function searchMouserProduct(keyword: string, categoryHint?: string) {
@@ -15,29 +18,36 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
 
     const url = `${MOUSER_API_URL}/search/keyword?apiKey=${API_KEY}`;
 
+    const payload = {
+      SearchByKeywordRequest: {
+        keyword: searchString,
+        records: 30,
+        startingRecord: 0,
+        searchOptions: "Text",
+      }
+    };
+
+    logger.req("MouserAPI", payload);
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify({
-        SearchByKeywordRequest: {
-          keyword: searchString,
-          records: 30,
-          startingRecord: 0,
-          searchOptions: "Text",
-        }
-      }),
+      body: JSON.stringify(payload),
     });
+
 
     if (!response.ok) {
       throw new Error(`Mouser API error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    logger.res("MouserAPI", data);
 
     if (data.SearchResults?.Parts?.length > 0) {
+
       let parts = data.SearchResults.Parts.map((part: any) => ({
         symbol: part.MouserPartNumber,
         manufacturer: part.Manufacturer,
@@ -70,7 +80,8 @@ export async function searchMouserProduct(keyword: string, categoryHint?: string
 
     return null;
   } catch (error) {
-    console.error("Mouser Search Error:", error);
+    logger.error("MouserAPI", "Mouser Search Error", error);
     return null;
   }
+
 }

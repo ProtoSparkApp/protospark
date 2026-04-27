@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
+
 
 export type ProjectIdea = {
   title: string;
@@ -49,7 +51,10 @@ export async function generateProjectIdeas(limit: number = 5): Promise<GenerateI
     `${c.genericName} (${c.value}${c.unit !== 'None' ? ` ${c.unit}` : ''}) x${c.quantity} [Category: ${c.category}]`
   ).join(",\n");
 
+  logger.req("generateProjectIdeas", { inventoryDescription });
+
   try {
+
     const { object } = await generateObject({
       model: google("gemini-2.5-flash-lite"),
       schema: z.object({
@@ -82,11 +87,13 @@ export async function generateProjectIdeas(limit: number = 5): Promise<GenerateI
       Try to be as realistic as possible given the specific components.`,
     });
 
+    logger.res("generateProjectIdeas", object);
     return { success: true, ...object } as GenerateIdeasResponse;
   } catch (error) {
-    console.error("AI Generation Error:", error);
+    logger.error("generateProjectIdeas", "AI Generation Error", error);
     return { error: "Failed to generate ideas. Please check if Google API Key is set." };
   }
+
 }
 
 export type ProjectGuide = {
@@ -107,16 +114,20 @@ export async function getProjectFullGuide(projectSummary: any): Promise<GuideAct
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
 
+  logger.req("getProjectFullGuide", projectSummary);
+
   try {
+
     const { object } = await generateObject({
       model: google("gemini-2.5-flash-lite"),
+      temperature: 0,
       schema: z.object({
         instructions: z.array(z.object({
           step: z.number(),
           title: z.string(),
           content: z.string(),
         })),
-        mermaidiagram: z.string().describe("A Mermaid.js diagram representing the circuit connections. Use 'graph TD' or similar. Use descriptive labels for pins. Keep it valid and finish all connections."),
+        mermaidiagram: z.string().describe("Valid Mermaid.js diagram (graph TD). Example: A[\"Arduino\"] -->|5V| B[\"LED\"]"),
         safetyWarnings: z.array(z.string()),
       }),
       prompt: `Generate a detailed step-by-step guide for building: ${projectSummary.title}.
@@ -127,31 +138,28 @@ export async function getProjectFullGuide(projectSummary: any): Promise<GuideAct
       1. Chronological instructions.
       2. A connection diagram in Mermaid.js format. 
          Guidelines for the diagram:
-         - Use 'graph LR' or 'graph TD'.
-         - Represent components as descriptive blocks with IDs and quoted labels. Format: NodeID["Label with (Parentheses)"]
-         - CRITICAL: Always wrap node labels in double quotes and square brackets NodeID["Label"] to avoid errors with special characters like () or [].
-         - Node IDs should be alphanumeric and single-word if possible (e.g., 'Switch1', 'LED_Red').
-         - Every connection must be complete. Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
-         - Use '---' for simple connections or '-->' for directional ones.
-         - STRICTLY FORBIDDEN: Do NOT use the '--|>' syntax. For labeled connections, always use '-->|Label|'.
-         - Do NOT leave trailing dashes at the end of a line.
-         - Do NOT use spaces inside labels of links (use '|Signal|' instead of '| Signal |').
-         - Specify the PIN names on each end of the connection.
-         - The diagram must be valid Mermaid syntax. Double-check all brackets.
-         STRICT RULES:
-         - NEVER chain connections like A --> B --> C
-         - ALWAYS split into separate lines
-         - EVERY connection must be exactly: A -->|Label| B
-         - NEVER end a line with --> or --
-         - NEVER connect to plain text, only nodes
+         - Use 'graph TD'.
+         - CRITICAL: Every node MUST have an ID and a label in double quotes and square brackets. 
+           Format: NodeID["Label"]
+           Example: Arduino["Arduino Uno"], LED1["Red LED"]
+         - NEVER use brackets [] without double quotes inside them for labels.
+         - Every connection MUST be on its own line.
+           Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
+         - Use '-->' for all connections.
+         - DO NOT use the '--|>' syntax.
+         - DO NOT leave any brackets or quotes unclosed.
+         - Specify the PIN names in the connection label, e.g. -->|Pin 13|
+         - The diagram must be 100% valid Mermaid syntax.
       3. Safety precautions.`,
     });
 
+    logger.res("getProjectFullGuide", object);
     return { success: true, data: object as ProjectGuide };
   } catch (error) {
-    console.error("AI Generation Error:", error);
+    logger.error("getProjectFullGuide", "AI Generation Error", error);
     return { error: "Failed to generate project guide." };
   }
+
 }
 
 export async function saveProject(projectData: any) {
@@ -163,6 +171,19 @@ export async function saveProject(projectData: any) {
 
     if (!projectData.title || !projectData.description) {
       return { error: "Missing project metadata." };
+    }
+
+    logger.info("saveProject", "Attempting to save project", projectData);
+
+    const existing = await db.query.projects.findFirst({
+      where: and(
+        eq(projects.userId, session.user.id),
+        eq(projects.title, projectData.title.trim())
+      )
+    });
+
+    if (existing) {
+      return { error: "Project with this title already exists in your library." };
     }
 
     const [inserted] = await db.insert(projects).values({
@@ -177,11 +198,14 @@ export async function saveProject(projectData: any) {
     }).returning();
 
     revalidatePath("/projects");
+    revalidatePath("/library");
+    logger.info("saveProject", "Project saved successfully", inserted);
     return { success: true, project: inserted };
   } catch (error: any) {
-    console.error("DB Save Error:", error);
+    logger.error("saveProject", "DB Save Error", error);
     return { error: `Failed to save project: ${error.message || "Unknown error"}` };
   }
+
 }
 
 export async function toggleProjectVisibility(projectId: string, isPublic: boolean) {
@@ -215,11 +239,14 @@ export async function deleteProject(projectId: string) {
 }
 
 export async function fixMermaidDiagram(brokenDiagram: string, errorMessage?: string): Promise<{ success: boolean; diagram?: string; error?: string }> {
+  logger.req("fixMermaidDiagram", { brokenDiagram, errorMessage });
   try {
+
     const { object } = await generateObject({
       model: google("gemini-2.5-flash-lite"),
+      temperature: 0,
       schema: z.object({
-        fixedDiagram: z.string().describe("The corrected Mermaid.js diagram with valid syntax. Do not change the meaning or components."),
+        fixedDiagram: z.string().describe("The corrected Mermaid.js diagram (graph TD)."),
       }),
       prompt: `The following Mermaid.js diagram has invalid syntax and failed to render. 
       Please fix the syntax errors so it renders correctly, but DO NOT change its meaning, logical structure, or the components involved.
@@ -230,24 +257,24 @@ export async function fixMermaidDiagram(brokenDiagram: string, errorMessage?: st
       ${errorMessage ? `Error Message from Renderer:\n      ${errorMessage}\n` : ""}
       
       Guidelines:
-      - Use 'graph LR' or 'graph TD'.
-      - Represent components as descriptive blocks with IDs and quoted labels. Format: NodeID["Label with (Parentheses)"]
-      - CRITICAL: Always wrap node labels in double quotes and square brackets NodeID["Label"] to avoid errors with special characters.
-      - Node IDs should be alphanumeric and single-word.
-      - Every connection must be complete. Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
-      - Use '---' for simple connections or '-->' for directional ones.
-      - STRICTLY FORBIDDEN: Do NOT use the '--|>' syntax. For labeled connections, always use '-->|Label|'.
-      - Do NOT leave trailing dashes at the end of a line.
-      - Do NOT use spaces inside labels of links (use '|Signal|' instead of '| Signal |').
-      - NEVER chain connections like A --> B --> C. ALWAYS split into separate lines.
-      - NEVER end a line with --> or --
-      - NEVER connect to plain text, only nodes`,
+      - Use 'graph TD'.
+      - CRITICAL: Every node MUST have an ID and a label in double quotes and square brackets. 
+        Format: NodeID["Label"]
+        Example: Arduino["Arduino Uno"]
+      - NEVER use brackets [] without double quotes inside them for labels.
+      - Every connection MUST be on its own line.
+        Format: NodeA["Label A"] -->|Signal| NodeB["Label B"]
+      - Use '-->' for all connections.
+      - DO NOT leave any brackets or quotes unclosed.
+      - The diagram must be 100% valid Mermaid syntax.`,
     });
 
+    logger.res("fixMermaidDiagram", { fixedDiagram: object.fixedDiagram });
     return { success: true, diagram: object.fixedDiagram };
   } catch (error) {
-    console.error("AI Diagram Fix Error:", error);
+    logger.error("fixMermaidDiagram", "AI Diagram Fix Error", error);
     return { success: false, error: "Failed to fix diagram." };
   }
+
 }
 

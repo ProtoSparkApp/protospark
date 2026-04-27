@@ -44,12 +44,12 @@ export function ProjectDashboard({ user }: { user: any }) {
   };
 
   useEffect(() => {
+    if (page !== 1 && (activeTab || debouncedSearch || difficulty)) {
+      setPage(1);
+      return;
+    }
     fetchLibrary();
   }, [activeTab, debouncedSearch, difficulty, page]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab, debouncedSearch, difficulty]);
 
   const totalCount = activeTab === "mine" ? library.totalMine : library.totalBookmarked;
   const totalPages = Math.ceil(totalCount / limit);

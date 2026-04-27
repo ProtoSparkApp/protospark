@@ -37,6 +37,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   const [isPosting, setIsPosting] = useState(false);
   const [showDiagram, setShowDiagram] = useState(true);
   const [components, setComponents] = useState(idea.requiredComponents || []);
+  const [localSavedId, setLocalSavedId] = useState(savedId);
 
   useEffect(() => {
     setShowDiagram(true);
@@ -63,6 +64,9 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
       });
       if (res.success) {
         toast.success("Project saved to your dashboard!");
+        if (res.project) {
+          setLocalSavedId(res.project.id);
+        }
       } else {
         toast.error(res.error || "Failed to save project.");
       }
@@ -74,20 +78,20 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   };
 
   const handleTogglePublic = async () => {
-    if (!savedId) return;
+    if (!localSavedId) return;
     const newStatus = !isPublic;
     setIsPublic(newStatus);
-    const res = await toggleProjectVisibility(savedId, newStatus);
+    const res = await toggleProjectVisibility(localSavedId, newStatus);
     if (res.success) {
       toast.success(newStatus ? "Project is now Public" : "Project is now Private");
     }
   };
 
   const handlePostToBlog = async () => {
-    if (!savedId) return;
+    if (!localSavedId) return;
     setIsPosting(true);
     const res = await createBlogPost({
-      projectId: savedId,
+      projectId: localSavedId,
       title: `Finished: ${idea.title}`,
       content: `I just completed this project! Here is the detailed guide and connection diagram I used. It's working perfectly.`,
     });
@@ -110,7 +114,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
           <ArrowLeft className="mr-2 h-5 w-5" /> Back
         </Button>
 
-        {isOwner && savedId && (
+        {((isOwner && localSavedId) || localSavedId) && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -212,7 +216,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                 ))}
               </ul>
 
-              {!savedId && (
+              {!localSavedId && (
                 <Button
                   onClick={handleSave}
                   className="mt-6 w-full border-2 border-black bg-green-400 text-black font-black hover:bg-green-500 shadow-brutal"

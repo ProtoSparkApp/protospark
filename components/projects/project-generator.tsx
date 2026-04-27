@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { generateProjectIdeas, getProjectFullGuide, type ProjectIdea, type ProjectGuide } from "@/lib/actions/projects";
+import { generateProjectIdeas, getProjectFullGuide, fixMermaidDiagram, type ProjectIdea, type ProjectGuide } from "@/lib/actions/projects";
 import { ProjectCard } from "./project-card";
 import { ProjectFullGuide } from "./guide-viewer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export default function ProjectGenerator() {
   const [loading, setLoading] = useState(false);
-  const [guideLoading, setGuideLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<"crafting" | "checking" | "fixing" | null>(null);
   const [ideas, setIdeas] = useState<ProjectIdea[]>([]);
   const [selectedIdea, setSelectedIdea] = useState<ProjectIdea | null>(null);
   const [fullGuide, setFullGuide] = useState<ProjectGuide | null>(null);
@@ -43,10 +43,27 @@ export default function ProjectGenerator() {
 
   const handleSelectIdea = async (idea: any) => {
     setSelectedIdea(idea);
-    setGuideLoading(true);
+    setLoadingStep("crafting");
     try {
       const res = await getProjectFullGuide(idea);
       if (res.success) {
+        setLoadingStep("checking");
+        let diagram = res.data.mermaidiagram;
+        
+        try {
+          const mermaid = (await import("mermaid")).default;
+          mermaid.initialize({ startOnLoad: false });
+          // Note: parse throws error if syntax is invalid
+          await mermaid.parse(diagram);
+        } catch (error: any) {
+          setLoadingStep("fixing");
+          const errorMessage = error?.message || String(error);
+          const fixRes = await fixMermaidDiagram(diagram, errorMessage);
+          if (fixRes.success && fixRes.diagram) {
+            res.data.mermaidiagram = fixRes.diagram;
+          }
+        }
+        
         setFullGuide(res.data);
       } else {
         toast.error(res.error || "Failed to generate guide.");
@@ -54,7 +71,7 @@ export default function ProjectGenerator() {
     } catch (error) {
       toast.error("Failed to generate project guide.");
     } finally {
-      setGuideLoading(false);
+      setLoadingStep(null);
     }
   };
 
@@ -116,12 +133,20 @@ export default function ProjectGenerator() {
         </div>
       )}
 
-      {guideLoading && (
+      {loadingStep && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="border-4 border-black bg-white p-12 text-center shadow-[12px_12px_0px_0px_black] max-w-md">
                 <Loader2 className="mx-auto h-16 w-16 animate-spin text-brand" />
-                <h2 className="mt-6 text-4xl font-black text-black uppercase tracking-tighter">Crafting Your Guide</h2>
-                <p className="mt-4 text-neutral-600 font-bold uppercase text-sm">Drawing schematics and writing instructions...</p>
+                <h2 className="mt-6 text-4xl font-black text-black uppercase tracking-tighter">
+                  {loadingStep === "crafting" && "Crafting Your Guide"}
+                  {loadingStep === "checking" && "Checking Diagram"}
+                  {loadingStep === "fixing" && "Fixing Diagram"}
+                </h2>
+                <p className="mt-4 text-neutral-600 font-bold uppercase text-sm">
+                  {loadingStep === "crafting" && "Drawing schematics and writing instructions..."}
+                  {loadingStep === "checking" && "Validating connections..."}
+                  {loadingStep === "fixing" && "AI is repairing schematic errors..."}
+                </p>
             </div>
         </div>
       )}

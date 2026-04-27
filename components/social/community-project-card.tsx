@@ -50,7 +50,7 @@ export function CommunityProjectCard({
   onBookmarkToggle
 }: CommunityProjectCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
-  const [inventoryStatus, setInventoryStatus] = useState<any>(null);
+  const [inventoryStatus, setInventoryStatus] = useState<any>(project.inventoryStatus || null);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
@@ -59,14 +59,20 @@ export function CommunityProjectCard({
   }, [initialIsBookmarked]);
 
   useEffect(() => {
-    if (showInventoryMatch) {
+    if (project.inventoryStatus) {
+      setInventoryStatus(project.inventoryStatus);
+    }
+  }, [project.inventoryStatus]);
+
+  useEffect(() => {
+    if (showInventoryMatch && !inventoryStatus) {
       checkInventoryForProject(project.requiredComponents).then(res => {
-        if ("status" in res) {
+        if (res && "status" in res) {
           setInventoryStatus(res);
         }
       });
     }
-  }, [project.requiredComponents, showInventoryMatch]);
+  }, [project.requiredComponents, showInventoryMatch, inventoryStatus]);
 
   const handleBookmark = async () => {
     const res = await bookmarkProject(project.id);

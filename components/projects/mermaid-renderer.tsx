@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { Maximize2, X } from "lucide-react";
+import { Maximize2, X, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Button } from "@/components/ui/button";
 
 mermaid.initialize({
@@ -29,13 +30,19 @@ if (typeof document !== 'undefined') {
       width: 100% !important;
       height: auto !important;
     }
+    .mermaid-zoomed-container svg {
+      max-width: none !important;
+      width: auto !important;
+      height: auto !important;
+    }
   `;
   document.head.appendChild(safeStyle);
 }
 
-import { fixMermaidDiagram } from "@/lib/actions/projects";
+import { logger } from "@/lib/logger";
 
 interface MermaidProps {
+
   chart: string;
   onHide?: () => void;
 }
@@ -44,15 +51,11 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [svgContent, setSvgContent] = useState<string>('');
-  
+
   const [currentChart, setCurrentChart] = useState(chart);
-  const [isFixing, setIsFixing] = useState(false);
-  const [fixAttempted, setFixAttempted] = useState(false);
 
   useEffect(() => {
     setCurrentChart(chart);
-    setFixAttempted(false);
-    setIsFixing(false);
   }, [chart]);
 
   useEffect(() => {
@@ -66,34 +69,12 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
 
     const handleRenderError = async (errorMessage?: string) => {
       if (!isMounted) return;
-      
-      if (!fixAttempted) {
-        setFixAttempted(true);
-        setIsFixing(true);
-        if (ref.current) {
-          ref.current.innerHTML = '<div class="flex items-center justify-center p-8 text-neutral-400 font-medium">Naprawianie diagramu... (AI Retry)</div>';
-        }
-        
-        try {
-          const res = await fixMermaidDiagram(currentChart, errorMessage);
-          if (res.success && res.diagram && isMounted) {
-            setCurrentChart(res.diagram); // This will re-trigger useEffect to render again
-          } else if (isMounted && onHide) {
-            onHide();
-          }
-        } catch (e) {
-          if (isMounted && onHide) onHide();
-        } finally {
-          if (isMounted) setIsFixing(false);
-        }
-      } else {
-        if (onHide) onHide();
-      }
+      logger.error("MermaidRenderer", "Render error, hiding diagram", errorMessage);
+      if (onHide) onHide();
     };
 
     const renderChart = async () => {
       if (!currentChart) return;
-      if (isFixing) return; // Prevent render attempt if we are currently fetching a fix
 
       const cleanChart = preprocessChart(currentChart);
 
@@ -102,7 +83,10 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
           ref.current.innerHTML = '<div class="flex items-center justify-center p-8 text-neutral-400 font-medium">Generowanie diagramu...</div>';
         }
 
+        logger.info("MermaidRenderer", "Rendering chart", { chart: cleanChart });
+
         const elementId = 'm' + Math.random().toString(36).substring(2, 9);
+
         const { svg } = await mermaid.render(elementId, cleanChart);
 
         if (isMounted) {
@@ -112,11 +96,14 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
           }
 
           if (svg.includes('aria-roledescription="error"') || svg.includes('Syntax error')) {
+            logger.error("MermaidRenderer", "SVG contains errors after render");
             await handleRenderError("SVG contains Syntax error or aria-roledescription='error'");
+          } else {
+            logger.info("MermaidRenderer", "Render successful");
           }
         }
       } catch (error: any) {
-        console.error("Mermaid Render Error:", error);
+        logger.error("MermaidRenderer", "Mermaid Render Exception", error);
         await handleRenderError(error?.message || String(error));
       }
     };
@@ -126,7 +113,7 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
     return () => {
       isMounted = false;
     };
-  }, [currentChart, fixAttempted, isFixing, onHide]);
+  }, [currentChart, onHide]);
 
   return (
     <>
@@ -147,19 +134,73 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
 
       {isZoomed && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="relative w-full max-w-7xl max-h-[90vh] overflow-auto bg-white border-4 border-black p-4 shadow-[16px_16px_0px_0px_#000]">
+          <div className="relative w-full max-w-7xl h-[80vh] bg-white border-4 border-black shadow-[16px_16px_0px_0px_#000] overflow-hidden">
             <Button
               variant="neo"
               onClick={() => setIsZoomed(false)}
-              className="fixed top-8 right-8 h-12 w-12 border-4 border-black bg-white hover:bg-red-400 text-black z-[110]"
+              className="absolute top-4 right-4 h-12 w-12 border-4 border-black bg-white hover:bg-red-400 text-black z-[110]"
             >
               <X className="h-6 w-6" />
             </Button>
 
-            <div
-              className="w-full h-full flex items-center justify-center p-8 bg-white"
-              dangerouslySetInnerHTML={{ __html: svgContent }}
-            />
+            <TransformWrapper
+              initialScale={1}
+              minScale={0.1}
+              maxScale={10}
+              centerOnInit={true}
+              limitToBounds={false}
+              wheel={{ step: 0.05 }}
+              zoomAnimation={{ disabled: true }}
+              velocityAnimation={{ disabled: true }}
+              smooth={false}
+            >
+              {({ zoomIn, zoomOut, resetTransform }) => (
+                <>
+                  <div className="absolute top-4 left-4 z-[110] flex flex-col gap-2">
+                    <Button
+                      variant="neo"
+                      size="sm"
+                      onClick={() => zoomIn()}
+                      className="h-10 w-10 p-0 border-2 border-black bg-white hover:bg-neutral-100 !text-black"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="neo"
+                      size="sm"
+                      onClick={() => zoomOut()}
+                      className="h-10 w-10 p-0 border-2 border-black bg-white hover:bg-neutral-100 !text-black"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="neo"
+                      size="sm"
+                      onClick={() => resetTransform()}
+                      className="h-10 w-10 p-0 border-2 border-black bg-white hover:bg-neutral-100 !text-black"
+                      title="Reset View"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <TransformComponent
+                    wrapperStyle={{ width: "100%", height: "100%" }}
+                    contentStyle={{ width: "100%", height: "100%" }}
+                    wrapperClassName="!w-full !h-full bg-white"
+                    contentClassName="!w-full !h-full flex items-center justify-center"
+                  >
+                    <div
+                      className="mermaid-zoomed-container flex items-center justify-center cursor-grab active:cursor-grabbing"
+                      style={{ padding: '100px', minWidth: '100%', minHeight: '100%' }}
+                      dangerouslySetInnerHTML={{ __html: svgContent }}
+                    />
+                  </TransformComponent>
+                </>
+              )}
+            </TransformWrapper>
           </div>
         </div>
       )}
