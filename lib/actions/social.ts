@@ -8,6 +8,64 @@ import { revalidatePath } from "next/cache";
 import { logger } from "@/lib/logger";
 
 
+
+function _calculateInventoryStatus(requiredComponents: any[], userInventory: any[]) {
+  const normalize = (s: string) => s?.trim().toLowerCase().replace(/\s+/g, '');
+
+  const status = (requiredComponents || []).map(req => {
+    const found = userInventory.find((inv: any) => {
+      const invName = normalize(inv.genericName);
+      const invValue = normalize(inv.value);
+      const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
+      const invCategory = normalize(inv.category || "");
+      const invMpn = normalize(inv.mpn || "");
+
+      const reqName = normalize(req.name);
+      const reqValue = normalize(req.value);
+
+      const baseNameMatch =
+        invName === reqName ||
+        reqName.includes(invName) ||
+        invName.includes(reqName) ||
+        invCategory.includes(reqName) ||
+        reqName.includes(invCategory) ||
+        invMpn.includes(reqName) ||
+        reqName.includes(invMpn);
+
+      const baseValueMatch =
+        reqValue === invValue ||
+        reqValue === (invValue + invUnit) ||
+        (invValue !== "" && reqValue.includes(invValue)) ||
+        (reqValue !== "" && invValue.includes(reqValue));
+
+      const fullInv = invName + invValue + invUnit + invCategory + invMpn;
+      const fullReq = reqName + reqValue;
+
+      const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
+
+      return (baseNameMatch && baseValueMatch) || crossMatch;
+    });
+
+    const hasEnough = found ? found.quantity >= req.quantity : false;
+
+    return {
+      ...req,
+      inventoryQuantity: found?.quantity || 0,
+      status: hasEnough ? "In Stock" : "Need to Buy"
+    };
+  });
+
+  const partsCountInStock = status.filter(s => s.status === "In Stock").length;
+  const partsCountMissing = status.length - partsCountInStock;
+
+  return {
+    status,
+    partsCountInStock,
+    partsCountMissing,
+    canBuild: partsCountMissing === 0
+  };
+}
+
 export async function toggleProfilePrivacy(isPublic: boolean) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -45,7 +103,15 @@ export async function getExploreProjects() {
     .orderBy(desc(saveCountSql))
     .limit(20);
 
-  return results;
+  const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
+
+  return results.map((r: any) => ({
+    ...r,
+    project: {
+      ...r.project,
+      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+    }
+  }));
 }
 
 export async function bookmarkProject(projectId: string) {
@@ -172,7 +238,15 @@ export async function getBlogPosts() {
     )
     .orderBy(desc(blogPosts.createdAt));
 
-  return results;
+  const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
+
+  return results.map((r: any) => ({
+    ...r,
+    project: {
+      ...r.project,
+      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+    }
+  }));
 }
 
 export async function getUserLibrary(params?: {
@@ -238,73 +312,17 @@ export async function getUserLibrary(params?: {
     .where(savedWhere);
 
   const userInventory = await db.select().from(components).where(eq(components.userId, session.user.id));
-  const normalize = (s: string) => s?.trim().toLowerCase().replace(/\s+/g, '');
-
-  const checkInventory = (requiredComponents: any[]) => {
-    const status = (requiredComponents || []).map(req => {
-      const found = userInventory.find((inv: any) => {
-        const invName = normalize(inv.genericName);
-        const invValue = normalize(inv.value);
-        const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
-        const invCategory = normalize(inv.category || "");
-        const invMpn = normalize(inv.mpn || "");
-
-        const reqName = normalize(req.name);
-        const reqValue = normalize(req.value);
-
-        const baseNameMatch =
-          invName === reqName ||
-          reqName.includes(invName) ||
-          invName.includes(reqName) ||
-          invCategory.includes(reqName) ||
-          reqName.includes(invCategory) ||
-          invMpn.includes(reqName) ||
-          reqName.includes(invMpn);
-
-        const baseValueMatch =
-          reqValue === invValue ||
-          reqValue === (invValue + invUnit) ||
-          (invValue !== "" && reqValue.includes(invValue)) ||
-          (reqValue !== "" && invValue.includes(reqValue));
-
-        const fullInv = invName + invValue + invUnit + invCategory + invMpn;
-        const fullReq = reqName + reqValue;
-
-        const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
-
-        return (baseNameMatch && baseValueMatch) || crossMatch;
-      });
-
-      const hasEnough = found ? found.quantity >= req.quantity : false;
-
-      return {
-        ...req,
-        inventoryQuantity: found?.quantity || 0,
-        status: hasEnough ? "In Stock" : "Need to Buy"
-      };
-    });
-
-    const partsCountInStock = status.filter(s => s.status === "In Stock").length;
-    const partsCountMissing = status.length - partsCountInStock;
-
-    return {
-      status,
-      partsCountInStock,
-      partsCountMissing,
-      canBuild: partsCountMissing === 0
-    };
-  };
 
   return {
     mine: myProjects.map((p: { project: Project; isBookmarked: unknown }) => ({
       ...p.project,
       isBookmarked: Boolean(p.isBookmarked),
-      inventoryStatus: checkInventory(p.project.requiredComponents as any[])
+      inventoryStatus: _calculateInventoryStatus(p.project.requiredComponents as any[], userInventory)
     })),
     bookmarked: bookmarked.map((b: { project: Project }) => ({
       ...b.project,
       isBookmarked: true,
-      inventoryStatus: checkInventory(b.project.requiredComponents as any[])
+      inventoryStatus: _calculateInventoryStatus(b.project.requiredComponents as any[], userInventory)
     })),
     totalMine: Number(totalMineCount),
     totalBookmarked: Number(totalBookmarkedCount),
@@ -316,61 +334,7 @@ export async function checkInventoryForProject(requiredComponents: any[]) {
   if (!session?.user?.id) return { status: [], partsCountInStock: 0, partsCountMissing: requiredComponents?.length || 0, canBuild: false };
 
   const userInventory = await db.select().from(components).where(eq(components.userId, session.user.id));
-
-  const normalize = (s: string) => s?.trim().toLowerCase().replace(/\s+/g, '');
-
-  const status = requiredComponents.map(req => {
-    const found = userInventory.find((inv: any) => {
-      const invName = normalize(inv.genericName);
-      const invValue = normalize(inv.value);
-      const invUnit = normalize(inv.unit === 'None' ? '' : inv.unit);
-      const invCategory = normalize(inv.category || "");
-      const invMpn = normalize(inv.mpn || "");
-
-      const reqName = normalize(req.name);
-      const reqValue = normalize(req.value);
-
-      const baseNameMatch =
-        invName === reqName ||
-        reqName.includes(invName) ||
-        invName.includes(reqName) ||
-        invCategory.includes(reqName) ||
-        reqName.includes(invCategory) ||
-        invMpn.includes(reqName) ||
-        reqName.includes(invMpn);
-
-      const baseValueMatch =
-        reqValue === invValue ||
-        reqValue === (invValue + invUnit) ||
-        (invValue !== "" && reqValue.includes(invValue)) ||
-        (reqValue !== "" && invValue.includes(reqValue));
-
-      const fullInv = invName + invValue + invUnit + invCategory + invMpn;
-      const fullReq = reqName + reqValue;
-
-      const crossMatch = fullInv.includes(reqName) || fullReq.includes(invName);
-
-      return (baseNameMatch && baseValueMatch) || crossMatch;
-    });
-
-    const hasEnough = found ? found.quantity >= req.quantity : false;
-
-    return {
-      ...req,
-      inventoryQuantity: found?.quantity || 0,
-      status: hasEnough ? "In Stock" : "Need to Buy"
-    };
-  });
-
-  const partsCountInStock = status.filter(s => s.status === "In Stock").length;
-  const partsCountMissing = status.length - partsCountInStock;
-
-  return {
-    status,
-    partsCountInStock,
-    partsCountMissing,
-    canBuild: partsCountMissing === 0
-  };
+  return _calculateInventoryStatus(requiredComponents, userInventory);
 }
 
 export async function searchUsers(query: string) {
@@ -425,7 +389,15 @@ export async function searchProjects(query: string) {
     .orderBy(desc(saveCountSql))
     .limit(20);
 
-  return results;
+  const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
+
+  return results.map((r: any) => ({
+    ...r,
+    project: {
+      ...r.project,
+      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+    }
+  }));
 }
 
 export async function getTopProjects() {
@@ -453,7 +425,40 @@ export async function getTopProjects() {
     .orderBy(desc(saveCountSql))
     .limit(10);
 
-  return results;
+  const userInventory = userId ? await db.select().from(components).where(eq(components.userId, userId)) : [];
+
+  return results.map((r: any) => ({
+    ...r,
+    project: {
+      ...r.project,
+      inventoryStatus: _calculateInventoryStatus(r.project.requiredComponents as any[], userInventory)
+    }
+  }));
+}
+
+
+
+async function _enrichPublicProfile(data: any, currentUserId?: string) {
+  if (!data) return null;
+  const userInventory = currentUserId ? await db.select().from(components).where(eq(components.userId, currentUserId)) : [];
+
+  return {
+    ...data,
+    projects: data.projects.map((p: any) => ({
+      ...p,
+      project: {
+        ...p.project,
+        inventoryStatus: _calculateInventoryStatus(p.project.requiredComponents as any[], userInventory)
+      }
+    })),
+    blogPosts: data.blogPosts.map((p: any) => ({
+      ...p,
+      project: {
+        ...p.project,
+        inventoryStatus: _calculateInventoryStatus(p.project.requiredComponents as any[], userInventory)
+      }
+    }))
+  };
 }
 
 export async function getPublicProfile(userId: string) {
@@ -493,12 +498,14 @@ export async function getPublicProfile(userId: string) {
     .where(eq(blogPosts.userId, userId))
     .orderBy(desc(blogPosts.createdAt));
 
-  return {
+  const data = {
     user,
     projects: publicProjects,
     blogPosts: userBlogPosts,
     totalProjectCount: Number(totalProjectCount),
   };
+
+  return _enrichPublicProfile(data, currentUserId);
 }
 
 export async function getExploreFeed() {

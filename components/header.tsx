@@ -6,6 +6,8 @@ import { login, logout } from "@/lib/actions/auth";
 
 import { MobileMenu } from "@/components/mobile-menu";
 
+import { NavLinks } from "@/components/nav-links";
+
 export async function Header() {
   const session = await auth();
 
@@ -20,12 +22,7 @@ export async function Header() {
           </Link>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 font-heading font-bold uppercase text-sm">
-          <Link href="/inventory" className="hover:text-brand transition-colors">Inventory</Link>
-          <Link href="/projects" className="hover:text-brand transition-colors">Projects</Link>
-          <Link href="/explore" className="hover:text-brand transition-colors">Explore</Link>
-          <Link href="/blog" className="hover:text-brand transition-colors">Blog</Link>
-        </nav>
+        <NavLinks />
 
         <div className="flex items-center gap-4">
           {session?.user ? (

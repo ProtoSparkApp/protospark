@@ -10,13 +10,25 @@ import {
   ChevronRight,
   CheckCircle2,
   Circle,
-  Save
+  Save,
+  MessageSquare,
+  Terminal
 } from "lucide-react";
 import Mermaid from "./mermaid-renderer";
 import { useState, useEffect } from "react";
 import { saveProject, toggleProjectVisibility } from "@/lib/actions/projects";
 import { createBlogPost, checkInventoryForProject } from "@/lib/actions/social";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface GuideProps {
   idea: any;
@@ -36,22 +48,29 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
   const [isPublic, setIsPublic] = useState(initialIsPublic || false);
   const [isPosting, setIsPosting] = useState(false);
   const [showDiagram, setShowDiagram] = useState(true);
-  const [components, setComponents] = useState(idea.requiredComponents || []);
+  const [components, setComponents] = useState(idea.inventoryStatus?.status || idea.requiredComponents || []);
   const [localSavedId, setLocalSavedId] = useState(savedId);
+  const [isPublishDialogOpen, setIsPublishDialogOpen] = useState(false);
+  const [publishData, setPublishData] = useState({
+    title: `FINISHED: ${idea.title.toUpperCase()}`,
+    content: `I just completed this project using ProtoSpark! The build process was smooth and the connection diagram provided clear guidance. Highly recommended for anyone looking to build this.`
+  });
 
   useEffect(() => {
     setShowDiagram(true);
   }, [guide.mermaidiagram]);
 
   useEffect(() => {
-    if (idea.requiredComponents?.length > 0) {
+    if (idea.requiredComponents?.length > 0 && !idea.inventoryStatus) {
       checkInventoryForProject(idea.requiredComponents).then(res => {
         if (res && "status" in res) {
           setComponents(res.status);
         }
       });
+    } else if (idea.inventoryStatus) {
+      setComponents(idea.inventoryStatus.status);
     }
-  }, [idea.requiredComponents]);
+  }, [idea.requiredComponents, idea.inventoryStatus]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -87,19 +106,37 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
     }
   };
 
-  const handlePostToBlog = async () => {
-    if (!localSavedId) return;
+  const handlePostToBlog = () => {
+    if (!localSavedId) {
+      toast.error("Please save the project first.");
+      return;
+    }
+    setIsPublishDialogOpen(true);
+  };
+
+  const confirmPostToBlog = async () => {
+    if (!publishData.title.trim() || !publishData.content.trim()) {
+      toast.error("Title and content are required.");
+      return;
+    }
+
     setIsPosting(true);
-    const res = await createBlogPost({
-      projectId: localSavedId,
-      title: `Finished: ${idea.title}`,
-      content: `I just completed this project! Here is the detailed guide and connection diagram I used. It's working perfectly.`,
-    });
-    setIsPosting(false);
-    if ("success" in res) {
-      toast.success("Build log shared to community blog!");
-    } else {
-      toast.error(res.error);
+    try {
+      const res = await createBlogPost({
+        projectId: localSavedId!,
+        title: publishData.title,
+        content: publishData.content,
+      });
+      if ("success" in res) {
+        toast.success("Build log shared to community blog!");
+        setIsPublishDialogOpen(false);
+      } else {
+        toast.error(res.error);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred.");
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -114,7 +151,7 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
           <ArrowLeft className="mr-2 h-5 w-5" /> Back
         </Button>
 
-        {((isOwner && localSavedId) || localSavedId) && (
+        {isOwner && localSavedId && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -132,11 +169,66 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
               disabled={isPosting}
               className="font-black border-2 border-black"
             >
-              {isPosting ? "Posting..." : "Share to Blog"}
+              {isPosting ? <Terminal className="mr-2 h-4 w-4 animate-pulse" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+              Share to Blog
             </Button>
           </div>
         )}
       </div>
+
+      <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Terminal className="h-6 w-6 text-brand" />
+              Publish Build Log
+            </DialogTitle>
+            <p className="text-xs font-black uppercase text-black/40 tracking-widest mt-2">
+              Share your success with the ProtoSpark community.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="font-black uppercase text-[10px] tracking-widest">Post Title</Label>
+              <Input 
+                id="title"
+                value={publishData.title}
+                onChange={(e) => setPublishData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="The Ultimate Build Log..."
+                className="border-2 border-black rounded-none font-bold placeholder:text-black/20 focus-visible:ring-0 focus-visible:border-brand"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="content" className="font-black uppercase text-[10px] tracking-widest">Your Report</Label>
+              <Textarea 
+                id="content"
+                value={publishData.content}
+                onChange={(e) => setPublishData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Tell us about your experience..."
+                className="min-h-[150px] border-2 border-black rounded-none font-medium placeholder:text-black/20 focus-visible:ring-0 focus-visible:border-brand resize-none uppercase text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsPublishDialogOpen(false)}
+              className="border-2 border-black rounded-none font-black uppercase"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmPostToBlog}
+              disabled={isPosting}
+              className="bg-brand text-white border-2 border-black rounded-none font-black uppercase shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            >
+              {isPosting ? "Transmitting..." : "Initialize Publication"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-12 md:grid-cols-[1fr_350px]">
         <div>
@@ -216,13 +308,14 @@ export function ProjectFullGuide({ idea, guide, onBack, savedId, isOwner, initia
                 ))}
               </ul>
 
-              {!localSavedId && (
+              {(!localSavedId || !isOwner) && (
                 <Button
                   onClick={handleSave}
                   className="mt-6 w-full border-2 border-black bg-green-400 text-black font-black hover:bg-green-500 shadow-brutal"
                   disabled={saving}
                 >
-                  <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Save Project"}
+                  <Save className="mr-2 h-4 w-4" /> 
+                  {saving ? "Saving..." : (isOwner ? "Save Project" : "Add to My Library")}
                 </Button>
               )}
             </div>

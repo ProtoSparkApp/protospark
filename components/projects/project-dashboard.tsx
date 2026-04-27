@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ProjectGenerator from "./project-generator";
 import { CommunityProjectCard } from "@/components/social/community-project-card";
 import { getUserLibrary } from "@/lib/actions/social";
@@ -15,41 +16,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 export function ProjectDashboard({ user }: { user: any }) {
   const [activeTab, setActiveTab] = useState<"generate" | "mine" | "saved">("mine");
-  const [library, setLibrary] = useState<{ mine: any[]; bookmarked: any[]; totalMine: number; totalBookmarked: number }>({
-    mine: [],
-    bookmarked: [],
-    totalMine: 0,
-    totalBookmarked: 0
-  });
-  const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
-
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 400);
   const [difficulty, setDifficulty] = useState("All");
   const [page, setPage] = useState(1);
   const limit = 6;
 
-  const fetchLibrary = () => {
-    setLoading(true);
-    getUserLibrary({
-      search: debouncedSearch,
-      difficulty,
-      page,
-      limit
-    }).then(res => {
-      setLibrary(res as any);
-      setLoading(false);
-    });
-  };
+  const queryClient = useQueryClient();
+
+  const { data: library = { mine: [], bookmarked: [], totalMine: 0, totalBookmarked: 0 }, isLoading: loading, refetch } = useQuery({
+    queryKey: ["user-library", { search: debouncedSearch, difficulty, page, limit }],
+    queryFn: () => getUserLibrary({ search: debouncedSearch, difficulty, page, limit }) as Promise<any>,
+  });
 
   useEffect(() => {
     if (page !== 1 && (activeTab || debouncedSearch || difficulty)) {
       setPage(1);
-      return;
     }
-    fetchLibrary();
-  }, [activeTab, debouncedSearch, difficulty, page]);
+  }, [activeTab, debouncedSearch, difficulty]);
 
   const totalCount = activeTab === "mine" ? library.totalMine : library.totalBookmarked;
   const totalPages = Math.ceil(totalCount / limit);
@@ -182,6 +167,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                     description: selectedProject.description,
                     difficulty: selectedProject.difficulty,
                     requiredComponents: selectedProject.requiredComponents,
+                    inventoryStatus: selectedProject.inventoryStatus,
                   }}
                   guide={{
                     instructions: selectedProject.instructions,
@@ -221,7 +207,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                         <p className="font-black uppercase text-black/40">No blueprints found. Visit the AI Lab to generate one.</p>
                       </div>
                     ) : (
-                      library.mine.map(p => (
+                      library.mine.map((p: any) => (
                         <CommunityProjectCard
                           key={p.id}
                           project={p}
@@ -230,7 +216,7 @@ export function ProjectDashboard({ user }: { user: any }) {
                           authorImage={user.image}
                           canDelete={true}
                           onDeleted={() => {
-                            fetchLibrary();
+                            refetch();
                           }}
                           onInitialize={(project) => setSelectedProject(project)}
                         />
@@ -250,13 +236,13 @@ export function ProjectDashboard({ user }: { user: any }) {
                           <p className="font-black uppercase text-black/40">Archive is empty. Explore the community to save projects.</p>
                         </div>
                       ) : (
-                        library.bookmarked.map(p => (
+                        library.bookmarked.map((p: any) => (
                           <CommunityProjectCard
                             key={p.id}
                             project={p}
                             isBookmarked={true}
                             onInitialize={(project) => setSelectedProject(project)}
-                            onBookmarkToggle={fetchLibrary}
+                            onBookmarkToggle={() => refetch()}
                           />
                         ))
                       )}

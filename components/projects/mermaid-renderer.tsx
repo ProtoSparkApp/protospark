@@ -189,8 +189,8 @@ const Mermaid: React.FC<MermaidProps> = ({ chart, onHide }) => {
                   <TransformComponent
                     wrapperStyle={{ width: "100%", height: "100%" }}
                     contentStyle={{ width: "100%", height: "100%" }}
-                    wrapperClassName="!w-full !h-full bg-white"
-                    contentClassName="!w-full !h-full flex items-center justify-center"
+                    wrapperClass="!w-full !h-full bg-white"
+                    contentClass="!w-full !h-full flex items-center justify-center"
                   >
                     <div
                       className="mermaid-zoomed-container flex items-center justify-center cursor-grab active:cursor-grabbing"

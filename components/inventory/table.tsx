@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, Fragment } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Table,
   TableBody,
@@ -44,38 +45,27 @@ export function InventoryTable({
   filters?: { search: string, category?: string },
   refreshKey?: number
 }) {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<any | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
+  const [isOperating, setIsOperating] = useState(false);
   const debouncedSearch = useDebounce(filters?.search || "", 300);
 
-  async function fetchInventory() {
-    setLoading(true);
-    try {
-      const res = await getInventory({
-        page,
-        search: debouncedSearch,
-        category: filters?.category
-      });
-      setData(res.data);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const queryClient = useQueryClient();
+
+  const { data: inventoryData = { data: [], total: 0, totalPages: 1 }, isLoading: loading, refetch } = useQuery({
+    queryKey: ["inventory", { page, search: debouncedSearch, category: filters?.category }],
+    queryFn: () => getInventory({ page, search: debouncedSearch, category: filters?.category }),
+  });
+
+  const data = inventoryData.data;
+  const total = inventoryData.total;
+  const totalPages = inventoryData.totalPages;
 
   useEffect(() => {
-    fetchInventory();
-  }, [page, debouncedSearch, filters?.category, refreshKey]);
+    if (refreshKey) refetch();
+  }, [refreshKey]);
 
   useEffect(() => {
     setPage(1);
@@ -93,12 +83,12 @@ export function InventoryTable({
 
   async function confirmDelete() {
     if (!deleteId) return;
-    setLoading(true);
+    setIsOperating(true);
     try {
       const res = await deleteComponent(deleteId);
       if (res.success) {
         toast.success("Part deleted from inventory");
-        fetchInventory();
+        refetch();
       } else {
         const errorMessage = typeof res.error === "string" 
           ? res.error 
@@ -109,7 +99,7 @@ export function InventoryTable({
       toast.error("Operation failed");
     } finally {
       setDeleteId(null);
-      setLoading(false);
+      setIsOperating(false);
     }
   }
 
@@ -156,7 +146,7 @@ export function InventoryTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((item) => (
+                data.map((item: any) => (
                   <Fragment key={item.id}>
                     <TableRow
                       className={`group cursor-pointer transition-all border-b-2 border-black hover:bg-zinc-50/80 ${expandedId === item.id ? 'bg-zinc-100' : ''}`}
@@ -356,15 +346,15 @@ export function InventoryTable({
               variant="destructive"
               className="flex-1 h-14 text-xs font-black uppercase rounded-none border-2 border-black shadow-[4px_4px_0px_#000]"
               onClick={confirmDelete}
-              disabled={loading}
+              disabled={isOperating}
             >
-              {loading ? <Loader2 className="animate-spin" /> : "Delete Part"}
+              {isOperating ? <Loader2 className="animate-spin" /> : "Delete Part"}
             </Button>
             <Button
               variant="outline"
               className="flex-1 h-14 border-2 border-black text-xs font-black uppercase rounded-none"
               onClick={() => setDeleteId(null)}
-              disabled={loading}
+              disabled={isOperating}
             >
               Abort
             </Button>
@@ -378,7 +368,7 @@ export function InventoryTable({
               initialData={editItem}
               onClose={() => {
                 setEditItem(null);
-                fetchInventory();
+                refetch();
               }}
             />
           </div>
